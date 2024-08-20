@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Druid Game</title>
+    <style>
+        body {
+            font-family: monospace;
+            background-color: black;
+            color: green;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            /*align-items: center;
+            justify-content: center;*/
+            height: 100vh;
+            font-size: 16px;
+        }
+        #game-console {
+            margin-left: 20px;
+            width: 1200px; /* Fixed width */
+            height: 2000px; /* Fixed height */
+            border: 2px solid green;
+            padding: 10px;
+            white-space: pre-wrap;
+            background-color: black;
+            color: green;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .game-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+        .game-controls button {
+            font-family: monospace;
+            background-color: green;
+            color: black;
+            border: 2px solid green;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: background-color 0.3s;
+        }
+        .game-controls button:hover {
+            background-color: darkgreen;
+        }
+        .controls {
+align-items: left;
+        }
+    </style>
+</head>
+<body>
+    <!--<h1>Druid Game</h1>-->
+    <div class="controls">
+    <div class="game-controls">
+        <button onclick="handleAction('t')">Treat</button>
+        <button onclick="handleAction('g')">Gather</button>
+        <button onclick="handleAction('d')">Discard</button>
+        <button onclick="handleAction('l')">Look</button>
+        <button onclick="handleAction('T')">Travel</button>
+        <button onclick="handleAction('p')">Potion</button>
+        <button onclick="handleAction('m')">Miasma</button>
+ <button onclick="handleAction('c')">Combima</button>
+        <button onclick="handleAction(' ')">Next Day</button>
+    </div>
+    <div class="game-controls">
+      <button onclick="handleAction('ENTER')">ENTER</button>
+       <button onclick="handleAction('k')">j</button>
+        <button onclick="handleAction('j')">k</button>
+    </div>
+</div>
+    <div id="game-console"></div>
+    <script src="druid.js"></script>
+    <script>
+        function handleAction(action) {
+          runLoop(action)
+        }
+    </script>
+</body>
+</html>
