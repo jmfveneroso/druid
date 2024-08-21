@@ -25,43 +25,23 @@ function displayScore(druid, screen, x = 0, y = 0) {
   const village = druid.currentVillage();
 
   let old_x = x;
-  writeToScreen(screen, x, y, '[Vil]', {type: 'MAIN_MENU_CLICK', pos: 0});
+  writeToScreen(screen, x, y, "[Vil]", {type: 'MAIN_MENU_CLICK', pos: 0});
   x += 5;
-  writeToScreen(
-      screen,
-      x,
-      y,
-      '===',
-  );
+  writeToScreen(screen, x, y, "===",);
   x += 3;
-  writeToScreen(screen, x, y, '[Inv]', {type: 'MAIN_MENU_CLICK', pos: 1});
+  writeToScreen(screen, x, y, "[Inv]", {type: 'MAIN_MENU_CLICK', pos: 1});
   x += 5;
-  writeToScreen(
-      screen,
-      x,
-      y,
-      '===',
-  );
+  writeToScreen(screen, x, y, "===",);
   x += 3;
-  writeToScreen(screen, x, y, '[Gat]', {type: 'MAIN_MENU_CLICK', pos: 2});
+  writeToScreen(screen, x, y, "[Gat]", {type: 'MAIN_MENU_CLICK', pos: 2});
   x += 5;
-  writeToScreen(
-      screen,
-      x,
-      y,
-      '===',
-  );
+  writeToScreen(screen, x, y, "===",);
   x += 3;
-  writeToScreen(screen, x, y, '[Tra]', {type: 'MAIN_MENU_CLICK', pos: 3});
+  writeToScreen(screen, x, y, "[Tra]", {type: 'MAIN_MENU_CLICK', pos: 3});
   x += 5;
-  writeToScreen(
-      screen,
-      x,
-      y,
-      '===',
-  );
+  writeToScreen(screen, x, y, "===",);
   x += 3;
-  writeToScreen(screen, x, y, '[Wai]', {type: 'MAIN_MENU_CLICK', pos: 4});
+  writeToScreen(screen, x, y, "[Wai]", {type: 'MAIN_MENU_CLICK', pos: 4});
 
   y += 2
   x = old_x;
@@ -191,12 +171,11 @@ function displayPatients(druid, screen, x = 0, y = 0) {
       for (let j = druid.windowP; j < end; j++) {
         let drugStr = '';
         if (village.patients[j].drugsTaken.length > i) {
+          const drug = village.patients[j].drugsTaken[i];
           const effectDescription = herbMap[drug.name].known ?
               herbMap[drug.name].effectDescription :
               '???';
-          const drug = village.patients[j].drugsTaken[i];
-          drugStr = `+ ${drug.name} (${drug.daysRemaining}) ` +
-              `${effectDescription}`;
+          drugStr = `+ ${drug.name} (${drug.daysRemaining}) ` + `${effectDescription}`;
         }
         lineStr += drugStr;
       }
@@ -209,9 +188,7 @@ function displayPatients(druid, screen, x = 0, y = 0) {
       if (i < patient.powerups.length) {
         let str = `+ ${patient.powerups[i][0]}`;
         let powerupFn = patient.powerups[i][1];
-        writeToScreen(
-            screen, x, y, str,
-            {type: 'POWERUP', patient: patient, pos: i, fn: powerupFn});
+        writeToScreen(screen, x, y, str, {type: "POWERUP", patient: patient, pos: i, fn: powerupFn });
       }
       y += 1;
     }
@@ -255,9 +232,7 @@ function displayMiasmaPatches(druid, screen, x = 0, y = 0) {
     const locationStr = `${cursor_s} ${patch.location}`;
     const strengthIndicator = '*'.repeat(patch.strength);
     const strengthStr = `${strengthIndicator}`;
-    writeToScreen(
-        screen, x, y, `${locationStr.padEnd(10)} ${strengthStr}`,
-        {type: 'REMOVE_MIASMA', pos: i});
+    writeToScreen(screen, x, y, `${locationStr.padEnd(10)} ${strengthStr}`, {type: "REMOVE_MIASMA", pos: i});
     y += 1;
   }
   return y;
@@ -272,17 +247,17 @@ function getEnv(herbName) {
       }
     }
   }
-  return ' ';
+  return " ";
 }
 
-function displayInventory(
-    druid, screen, x = 0, y = 0, all = true, potion = false) {
+function displayInventory(druid, screen, x = 0, y = 0, all = true, potion = false) {
   if (all) {
     if (potion) {
-      writeToScreen(screen, x, y, '[POTION MODE]', {type: 'BACK_TO_INVENTORY'});
+      writeToScreen(
+          screen, x, y, "[POTION MODE]", {type: 'BACK_TO_INVENTORY'});
     } else {
       writeToScreen(
-          screen, x, y, '[INVENTORY MODE]', {type: 'COMBINE_POTIONS'});
+          screen, x, y, "[INVENTORY MODE]", {type: 'COMBINE_POTIONS'});
     }
   }
 
@@ -301,27 +276,28 @@ function displayInventory(
     const herbName = herb + ' '.repeat(14 - herb.length);
     const qty = zfill(quantity);
     const runes = herbMap[herb].revealedRunes.join('');
-    const effectDescription =
-        herbMap[herb].known ? herbMap[herb].effectDescription : '???';
+    const effectDescription = herbMap[herb].known ?
+        herbMap[herb].effectDescription :
+        '???';
 
-    const env = (all) ? getEnv(herb) : '';
+    const env = (all) ? getEnv(herb) : "";
 
-    let selected = ' ';
+    let selected = " ";
     if (druid.selectedHerbs.includes(herb)) {
-      selected = '>';
+      selected = ">";
     }
-
-    let inventoryLine =
-        `${env}${selected}${qty} ${herbName} ${runes} ${effectDescription}`;
+             
+    let inventoryLine = `${env}${selected}${qty} ${herbName} ${runes} ${effectDescription}`;
 
     let effect = {type: 'TREAT_PATIENT', herb: herb};
     if (potion) {
-      effect = { type: 'SELECT_INGREDIENT', herb: herb }
+      effect = {type: 'SELECT_INGREDIENT', herb: herb}
     } else if (all) {
-      effect = { type: 'DISCARD_INGREDIENT', herb: herb }
+      effect = {type: 'DISCARD_INGREDIENT', herb: herb}
     }
 
-    writeToScreen(screen, x, y, inventoryLine, effect);
+    writeToScreen(
+        screen, x, y, inventoryLine, effect);
     y += 1;
     i += 1;
   }
@@ -345,21 +321,19 @@ function displayMessages(druid, screen, x = 0, y = 0) {
 
 function displayEnvironment(druid, screen, x = 0, y = 0) {
   environments.forEach((environment, i) => {
-    const environmentLine =
-        `${environment.name} ${environment.sumHerbChances().toFixed(2)}`;
-    writeToScreen(
-        screen, x, y + i * 4, environmentLine, {type: 'GATHER', pos: i});
+    const environmentLine = `${environment.name} ${environment.sumHerbChances().toFixed(2)}`;
+    writeToScreen(screen, x, y + i*4, environmentLine, {type: "GATHER", pos: i});
     let herbs = `${environment.getKnownHerbs1()}`;
-    writeToScreen(screen, x, y + i * 4 + 1, herbs, {type: 'GATHER', pos: i});
+    writeToScreen(screen, x, y + i*4 + 1, herbs, {type: "GATHER", pos: i});
     herbs = `${environment.getKnownHerbs2()}`;
-    writeToScreen(screen, x, y + i * 4 + 2, herbs, {type: 'GATHER', pos: i});
+    writeToScreen(screen, x, y + i*4 + 2, herbs, {type: "GATHER", pos: i});
   });
 }
 
 function displayVillages(druid, screen, x = 0, y = 0) {
   villages.forEach((village, i) => {
     const villageLine = `${village.name}`;
-    writeToScreen(screen, x, y + i * 2, villageLine, {type: 'TRAVEL', pos: i});
+    writeToScreen(screen, x, y + i*2, villageLine, {type: "TRAVEL", pos: i});
   });
 }
 
