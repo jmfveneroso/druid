@@ -1,0 +1,6 @@
+-env effect randomized
+-potion blending
+- on patient cured, leave the patient there to capture the crystal
+- on patient log show how the disease progressed
+- make sure that the only compatible runes are the ones that produce potions
+-win condition
