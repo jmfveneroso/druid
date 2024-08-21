@@ -20,8 +20,7 @@
         }
         #game-console {
             margin-left: 20px;
-            width: 1200px; /* Fixed width */
-            height: 2000px; /* Fixed height */
+            width: 800px; /* Fixed width */
             border: 2px solid green;
             padding: 10px;
             white-space: pre-wrap;
@@ -29,6 +28,16 @@
             color: green;
             margin-bottom: 20px;
             position: relative;
+            display: inline-block;
+        }
+        .row {
+          display: flex;
+        }
+        .col {
+          width: 16px;   /* Adjust size as needed */
+          height: 20px;  /* Adjust size as needed */
+          text-align: center;
+          font-family: monospace;
         }
         .game-controls {
             display: flex;
@@ -51,12 +60,12 @@
             background-color: darkgreen;
         }
         .controls {
-align-items: left;
+            align-items: left;
         }
     </style>
 </head>
 <body>
-    <!--<h1>Druid Game</h1>-->
+    <!--<h1>Druid Game</h1>
     <div class="controls">
     <div class="game-controls">
         <button onclick="handleAction('t')">Treat</button>
@@ -74,7 +83,7 @@ align-items: left;
        <button onclick="handleAction('k')">j</button>
         <button onclick="handleAction('j')">k</button>
     </div>
-</div>
+</div>-->
     <div id="game-console"></div>
     <script src="druid.js"></script>
     <script>

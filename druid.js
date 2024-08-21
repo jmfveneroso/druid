@@ -506,7 +506,7 @@ let possibleEffects = [
     duration: BASE_DURATION
   },
   {
-    description: '+8 HP to the organ with lowest HP -3 to other organs.',
+    description: '+8 HP to lowest -3 HP to other organs.',
     chance: 0.05,
     effectFunction: phoenixAshEffect,
     finalFunction: noEffect,
@@ -901,19 +901,28 @@ class Druid {
     this.gameState = 'MAIN';
     this.setState('MAIN');
     this.msg = ['Welcome to The Druid Game!'];
-    this.cursor = -1;
-    this.cursorP = -1;
-    this.cursorMiasma = -1;
+    this.cursor = 0;
+    this.cursorP = 0;
+    this.cursorMiasma = 0;
     this.windowP = 0;
-    this.windowPSize = 3;
-    this.cursorE = -1;
-    this.cursorVillage = -1;
+    this.windowPSize = 1;
+    this.cursorMain = 0;
+    this.cursorE = 0;
+    this.cursorVillage = 0;
     this.selectedVillage = 0;
     this.selectedHerbs = [];  // Herbs selected for combination
     this.usedPotions = [];
-    this.crystals = 0;
+    this.crystals = 1;
     this.combinationMap = {};
     this.initCombinationMap();
+    this.mainMenuOptions = {
+      "village": "VILLAGE",
+      "inventory": "INVENTORY",
+      "gather": "CHOOSE_ENVIRONMENT",
+      "travel": "TRAVELLING",
+      "wait": "WAIT",
+      // "druid": "DRUID",
+    };
 
     // Druid leveling system
     this.level = 1;
@@ -1028,6 +1037,10 @@ class Druid {
     this.cursor = Math.max(0, Math.min(newValue, 24));
   }
 
+  updateCursorMain(newValue) {
+    this.cursorMain = Math.max(0, Math.min(newValue, Object.keys(this.mainMenuOptions).length-1));
+  }
+
   updateCursorE(newValue) {
     this.cursorE = Math.max(0, Math.min(newValue, 5));
   }
@@ -1049,8 +1062,9 @@ class Druid {
     this.gameState = newState;
     switch (newState) {
       case 'MAIN':
+        this.cursorMain = 0;
         this.cursor = -1;
-        this.cursorP = -1;
+        // this.cursorP = -1;
         this.cursorE = -1;
         this.cursorMiasma = -1;
         this.cursorVillage = -1;
@@ -1065,14 +1079,17 @@ class Druid {
       case 'TREATING_PATIENT':
         this.cursorP = this.windowP;
         break;
+      case 'VILLAGE':
+        // this.cursorP = 0;
+        break;
       case 'TRAVELLING':
         this.cursorVillage = 0;
         break;
       default:
         if ([
-              'TREATING', 'GATHERING_SPECIFIC', 'DISCOVERING', 'SELECT_POTION'
+              'TREATING', 'DISCOVERING', 'SELECT_POTION'
             ].includes(newState)) {
-          this.cursor = 0;
+          // this.cursor = 0;
         }
         break;
     }
@@ -1530,8 +1547,8 @@ const villages = [village1, village2, village3];
 // DISPLAY
 /////////////////////////////////////////////////
 
-const SCREEN_WIDTH = 230;
-const SCREEN_HEIGHT = 60;
+const SCREEN_WIDTH = 80;
+const SCREEN_HEIGHT = 50;
 
 function zfill(x) {
   return x < 10 ? ' ' + String(x) : String(x);
@@ -1551,7 +1568,7 @@ function writeToScreen(screen, x, y, text) {
 
 function displayScore(druid, screen, x = 0, y = 0) {
   const village = druid.currentVillage();
-  const scoreText = `Days: ${druid.days} ${druid.gameState}`;
+  const scoreText = `Days: ${druid.days}    Crystals: ${druid.crystals}     ${druid.gameState}`;
   writeToScreen(screen, x, y, scoreText);
 }
 
@@ -1567,27 +1584,28 @@ function displayOrgan(druid, organ, screen, x = 0, y = 0) {
   return status;
 }
 
-function displayMiasmaPatches(druid, village, screen, x = 0, y = 0) {
+function displayMiasmaPatches(druid, screen, x = 0, y = 0) {
+  const village = druid.currentVillage();
   if (village.miasmaPatches.length === 0) {
     writeToScreen(screen, x, y, 'No miasma patches detected in the village.');
     return y + 1;
   }
 
+  y += 1;
+
   for (let i = 0; i < village.miasmaPatches.length; i++) {
     const patch = village.miasmaPatches[i];
     const cursor_s = druid.cursorMiasma === i ? '>' : ' ';
-    const locationStr = `${cursor_s} Location: ${patch.location}`;
+    const locationStr = `${cursor_s} ${patch.location}`;
     const strengthIndicator = '*'.repeat(patch.strength);
-    const strengthStr =
-        `  Strength: ${strengthIndicator} (${patch.strength}/5)`;
-    writeToScreen(screen, x, y, `${locationStr.padEnd(25)} | ${strengthStr}`);
+    const strengthStr = `${strengthIndicator}`;
+    writeToScreen(screen, x, y, `${locationStr.padEnd(10)} ${strengthStr}`);
     y += 1;
   }
   return y;
 }
 
-function displayPatients(druid, screen, x = 0, y = 0) {
-  const village = druid.currentVillage();
+function displayVillageInfo(druid, village, screen, x = 0, y = 0) {
   writeToScreen(screen, x, y, `Village: ${village.name}`);
   y += 1;
   writeToScreen(screen, x, y, `Population: ${village.villagers.length}`);
@@ -1595,27 +1613,46 @@ function displayPatients(druid, screen, x = 0, y = 0) {
   writeToScreen(screen, x, y, `Graveyard: ${village.deadCount}`);
   y += 1;
   writeToScreen(
-      screen, x, y, `Miasma Strength: ${village.calculateMiasmaStrength()}`);
+      screen, x, y, `(m) Miasma Strength: ${village.calculateMiasmaStrength()}`);
   y += 1;
   writeToScreen(
       screen, x, y,
       `Spread Chance: ${(village.calculateSpreadChance() * 100).toFixed(2)}%`);
+  y += 1;
+  writeToScreen(
+      screen, x, y,
+      `Sick: ${village.patients.length}`);
   y += 2;
 
-  writeToScreen(screen, x, y, '='.repeat(80));
+  // y = displayMiasmaPatches(druid, village, screen, x, y);
+
+  // y += 1;
+
+  return y;
+}
+
+function displayPatients(druid, screen, x = 0, y = 0) {
+  const village = druid.currentVillage();
+  y = displayVillageInfo(druid, village, screen, x, y)
+
+  writeToScreen(screen, x, y, '='.repeat(30));
   y += 1;
+
+  const colSize = 30;
 
   const lft = druid.windowP > 0 ? '<' : ' ';
   const rgt =
       village.patients.length > druid.windowP + druid.windowPSize ? '>' : ' ';
-  const header = `${lft}     Patients: ${village.patients.length}     ${rgt}`;
+  let header = `${druid.cursorP+1} of ${village.patients.length}`;
+  let paddingLft = ' '.repeat((colSize - header.length - 2)/2)
+  let paddingRgt = ' '.repeat(colSize - header.length - paddingLft.length - 2);
+  header = `${lft}` + paddingLft + header + paddingRgt + `${rgt}`;
   writeToScreen(screen, x, y, header);
   y += 1;
 
-  writeToScreen(screen, x, y, '='.repeat(80));
+  writeToScreen(screen, x, y, '='.repeat(30));
   y += 1;
 
-  const colSize = 30;
   if (village.patients.length <= druid.windowP) {
     druid.windowP =
         Math.max(0, village.patients.length - druid.windowPSize - 1);
@@ -1625,8 +1662,9 @@ function displayPatients(druid, screen, x = 0, y = 0) {
 
   let lineStr = '';
   for (let i = druid.windowP; i < end; i++) {
-    const cursor_s = druid.cursorP === i ? '>' : ' ';
-    let s = `${cursor_s} ${village.patients[i].id} `;
+    // const cursor_s = druid.cursorP === i ? '>' : ' ';
+    const cursor_s = ' ';
+    let s = `${cursor_s} (t) ${village.patients[i].id} `;
     s += village.patients[i].dragonscaleActive ? '[D]' : '';
     s += village.patients[i].silvervineActive ? '[S]' : '';
     lineStr += s + ' '.repeat(colSize - s.length);
@@ -1672,11 +1710,12 @@ function displayPatients(druid, screen, x = 0, y = 0) {
       y += 1;
     }
   }
+  return y;
 }
 
 function displayInventory(druid, screen, x = 0, y = 0) {
   writeToScreen(screen, x, y, 'Ingredients stash:');
-  y += 1;
+  y += 2;
 
   let i = 0;
   const total = zfill(
@@ -1684,9 +1723,10 @@ function displayInventory(druid, screen, x = 0, y = 0) {
 
   for (const [herb, quantity] of Object.entries(
            druid.herbGathering.inventory)) {
-    const herbName = herb + ' '.repeat(20 - herb.length);
+    const herbName = herb + ' '.repeat(18 - herb.length);
     const qty = zfill(quantity);
-    const cursor_s = druid.cursor === i ? '>' : ' ';
+    // const cursor_s = druid.cursor === i ? '>' : ' ';
+    const cursor_s = '';
     const justAcquired = druid.herbGathering.justAcquired[herb] > 0 ?
         '+' + druid.herbGathering.justAcquired[herb] :
         '  ';
@@ -1695,8 +1735,7 @@ function displayInventory(druid, screen, x = 0, y = 0) {
         herbMap[herb].effectDescription :
         'Unknown effect.';
 
-    let inventoryLine = `${cursor_s} ${qty} ${justAcquired}   ${herbName} ${
-        runes}   ${effectDescription}`;
+    let inventoryLine = `${qty} ${herbName} ${runes} ${effectDescription}`;
 
     if (druid.selectedHerbs.includes(herb)) {
       inventoryLine += ' (Selected)';
@@ -1708,7 +1747,7 @@ function displayInventory(druid, screen, x = 0, y = 0) {
   }
 
   writeToScreen(
-      screen, x, y, `  ${total} / ${druid.herbGathering.maxInventory}`);
+      screen, x, y, `${total} / ${druid.herbGathering.maxInventory}`);
   y += 1;
 
   druid.herbGathering.justAcquired = Object.fromEntries(
@@ -1744,7 +1783,7 @@ function displayVillages(druid, screen, x = 0, y = 0) {
 
 function displayControls(screen, x = 0, y = 0) {
   const s =
-      '(t) Treat Patient, (l) Look Patients, (g) Gather Ingredients (d) Discard Herb (T) Travel (p) Create Potion (m) Remove Miasma \n';
+      '(t) Treat Patient, (l) Look Patients, (g) Gather Ingredients (d) Discard Herb (T) Travel (p) Create Potion (m) Remove Miasma';
   writeToScreen(screen, x, y, s);
 }
 
@@ -1756,39 +1795,245 @@ function displayDruid(druid, screen, x = 0, y = 0) {
   writeToScreen(screen, x, y + 2, `Crystals: ${druid.crystals}`);
 }
 
-function renderScreen(screen, isBrowser) {
+function displayMainMenu(druid, screen, x = 0, y = 0) {
+  Object.keys(druid.mainMenuOptions).forEach((optionName, i) => {
+    const cursor_e = druid.cursorMain === i ? '>' : ' ';
+    const optionLine = `${cursor_e} ${optionName}`;
+    writeToScreen(screen, x, y + i, optionLine);
+  });
+}
+
+function handleClick(druid, rowIndex, colIndex) {
+  if (rowIndex == 1) {
+    druid.setState("MAIN");
+    runLoop("$", isBrowser = true);
+    return;
+  }
+  // alert(`Row: ${rowIndex}, Column: ${colIndex}`);
+  let cursor = rowIndex;
+  let maxValue = 1000;
+  switch (druid.gameState) {
+    case 'MAIN':
+      cursor -= 3;
+      maxValue = 5;
+      break;
+    case 'VILLAGE':
+      if (rowIndex == 13) {
+        druid.setState("TREATING_PATIENT");
+        runLoop("$", isBrowser = true);
+        return;
+      } else if (rowIndex == 6) {
+        druid.setState("REMOVE_MIASMA");
+        runLoop("$", isBrowser = true);
+        return;
+      } else if (rowIndex == 11 && colIndex == 1) {
+        druid.updateCursorP(druid.cursorP - 1);
+        runLoop("$", isBrowser = true);
+        return;
+      } else if (rowIndex == 11 && colIndex == 30) {
+        druid.updateCursorP(druid.cursorP + 1);
+        runLoop("$", isBrowser = true);
+        return;
+      }
+      break;
+    case 'REMOVE_MIASMA':
+      cursor -= 4;
+      maxValue = druid.currentVillage().miasmaPatches.length;
+      break;
+    case 'TREATING_PATIENT':
+      cursor -= 5;
+      maxValue = 25;
+      break;
+    case 'CHOOSE_ENVIRONMENT':
+      cursor -= 3;
+      maxValue = 4;
+      break;
+    case 'TRAVELLING':
+      cursor -= 3;
+      maxValue = 3;
+      break;
+    case 'INVENTORY':
+      cursor -= 5;
+      maxValue = 25;
+      break;
+    default:
+      druid.setState("MAIN")
+      runLoop("$", isBrowser = true);
+      return;
+  }
+
+  if (cursor < 0 || cursor >= maxValue) {
+    druid.setState("MAIN")
+    runLoop("$", isBrowser = true);
+    return;
+  }
+
+  switch (druid.gameState) {
+    case 'MAIN':
+      druid.cursorMain = cursor;
+      if (druid.cursorMain == 4) {
+        runLoop(" ", isBrowser = true);
+        return;
+      }
+      break;
+    case 'TRAVELLING':
+      druid.cursorVillage = cursor;
+      break;
+    case 'CHOOSE_ENVIRONMENT':
+      druid.cursorE = cursor;
+      break;
+    case 'TREATING_PATIENT':
+      druid.cursor = cursor;
+      break;
+    case 'INVENTORY':
+      druid.cursor = cursor;
+      druid.setState("DISCOVERING");
+      runLoop("ENTER", isBrowser = true);
+      runLoop("$", isBrowser = true);
+      return;
+    case 'REMOVE_MIASMA':
+      druid.cursorMiasma = cursor;
+      break;
+  }
+
+  runLoop("ENTER", isBrowser = true);
+}
+
+function renderScreen(druid, screen, isBrowser) {
+  const frameChar = '░';
+  const width = screen[0].length;
+  const topBottomBorder = frameChar.repeat(width + 2); // Top and bottom borders
+
   if (isBrowser) {
     const gameConsole = document.getElementById('game-console');
     gameConsole.innerHTML = '';  // Clear previous screen
 
-    // Render the screen
+    // Render the top border
+    const topBorderElement = document.createElement('div');
+    topBorderElement.className = 'row';
+    for (let col = 0; col < width + 2; col++) {
+      const charElement = document.createElement('div');
+      charElement.className = 'col';
+      charElement.textContent = frameChar;
+      topBorderElement.appendChild(charElement);
+    }
+    gameConsole.appendChild(topBorderElement);
+
+    // Render the screen with side borders
+    screen.forEach((row, rowIndex) => {
+      const rowElement = document.createElement('div');
+      rowElement.className = 'row';
+
+      // Left border
+      const leftBorderElement = document.createElement('div');
+      leftBorderElement.className = 'col';
+      leftBorderElement.textContent = frameChar;
+      rowElement.appendChild(leftBorderElement);
+
+      // Screen content
+      row.forEach((char, colIndex) => {
+        const charElement = document.createElement('div');
+        charElement.className = 'col';
+        charElement.textContent = char;
+
+        // Set custom attributes for row and column
+        charElement.setAttribute('data-row', rowIndex);
+        charElement.setAttribute('data-col', colIndex);
+
+        // Add click event to detect row and column
+        charElement.addEventListener('click', function() {
+          handleClick(druid, rowIndex, colIndex);
+        });
+
+        rowElement.appendChild(charElement);
+      });
+
+      // Right border
+      const rightBorderElement = document.createElement('div');
+      rightBorderElement.className = 'col';
+      rightBorderElement.textContent = frameChar;
+      rowElement.appendChild(rightBorderElement);
+
+      gameConsole.appendChild(rowElement);
+    });
+
+    // Render the bottom border
+    const bottomBorderElement = document.createElement('div');
+    bottomBorderElement.className = 'row';
+    for (let col = 0; col < width + 2; col++) {
+      const charElement = document.createElement('div');
+      charElement.className = 'col';
+      charElement.textContent = frameChar;
+      bottomBorderElement.appendChild(charElement);
+    }
+    gameConsole.appendChild(bottomBorderElement);
+
+    // const gameConsole = document.getElementById('game-console');
+    // gameConsole.innerHTML = '';  // Clear previous screen
+
+    // // Render the top border
+    // gameConsole.innerHTML += topBottomBorder + '\n';
+
+    // // Render the screen with side borders
+    // for (let row of screen) {
+    //   gameConsole.innerHTML += frameChar + row.join('') + '\n';
+    // }
+
+    // // Render the bottom border
+    // gameConsole.innerHTML += topBottomBorder + '\n';
+
+    // // Scroll to the bottom of the console
+    // gameConsole.scrollTop = gameConsole.scrollHeight;
+  } else {
+    // Render the top border
+    console.log(topBottomBorder);
+
+    // Render the screen with side borders
     for (let row of screen) {
-      gameConsole.innerHTML += row.join('') + '\n';
+      console.log(frameChar + row.join('') + frameChar);
     }
 
-    // Scroll to the bottom of the console
-    gameConsole.scrollTop = gameConsole.scrollHeight;
-  } else {
-    for (let row of screen) {
-      console.log(row.join(''));
-    }
+    // Render the bottom border
+    console.log(topBottomBorder);
   }
 }
 
 function printScreen(druid, isBrowser) {
   const screen = createScreen(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-  displayScore(druid, screen, 0, 0);
-  displayPatients(druid, screen, 0, 2);
-  displayInventory(druid, screen, 0, 25);
-  displayControls(screen, 0, 53);
-  displayEnvironment(druid, screen, 0, 54);
-  displayVillages(druid, screen, 0, 54);
-  displayDruid(druid, screen, 90, 2);
-  displayMessages(druid, screen, 0, 60);
-  displayMiasmaPatches(druid, druid.currentVillage(), screen, 30, 1);
+  displayScore(druid, screen, 1, 1);
 
-  renderScreen(screen, isBrowser);
+  switch (druid.gameState) {
+    case 'MAIN':
+      displayMainMenu(druid, screen, 1, 3);
+      break;
+    case 'CHOOSE_ENVIRONMENT':
+      displayEnvironment(druid, screen, 1, 3);
+      break;
+    case 'TRAVELLING':
+      displayVillages(druid, screen, 1, 3);
+      break;
+    case 'VILLAGE':
+      displayPatients(druid, screen, 1, 3);
+      break;
+    case 'TREATING_PATIENT':
+      // let y = displayPatients(druid, screen, 1, 3);
+      displayInventory(druid, screen, 1, 3);
+      break;
+    case 'REMOVE_MIASMA':
+      displayMiasmaPatches(druid, screen, 1, 3);
+      break;
+    case 'INVENTORY':
+      displayInventory(druid, screen, 1, 3);
+      break;
+    default:
+      displayControls(screen, 0, 53);
+      displayDruid(druid, screen, 90, 2);
+      break;
+  }
+
+  displayMessages(druid, screen, 1, 34);
+  renderScreen(druid, screen, isBrowser);
 }
 
 /////////////////////////////////////////////////
@@ -1806,6 +2051,10 @@ function getKeypress() {
 
 async function handleEnter(druid) {
   switch (druid.gameState) {
+    case 'MAIN':
+      let key = Object.keys(druid.mainMenuOptions)[druid.cursorMain];
+      druid.setState(druid.mainMenuOptions[key]);
+      break;
     case 'TREATING':
       const herbName = availableHerbs[druid.cursor];
       if (druid.herbGathering.inventory[herbName] <= 0) {
@@ -1817,7 +2066,7 @@ async function handleEnter(druid) {
     case 'TREATING_PATIENT':
       const potionName = availableHerbs[druid.cursor];
       druid.treatPatient(druid.cursorP, potionName);
-      druid.setState('MAIN');
+      druid.setState('VILLAGE');
       if (!await druid.progressGameForDays(DAYS_TO_TREAT)) {
         return false;
       }
@@ -1825,7 +2074,7 @@ async function handleEnter(druid) {
     case 'DISCOVERING':
       const discardName = availableHerbs[druid.cursor];
       druid.discardHerb(discardName);
-      druid.setState('MAIN');
+      druid.setState('INVENTORY');
       break;
     case 'LOOKING':
       druid.setState('MAIN');
@@ -1844,7 +2093,7 @@ async function handleEnter(druid) {
     case 'CHOOSE_ENVIRONMENT':
       const env = environments[druid.cursorE];
       druid.gatherIngredients(env);
-      druid.setState('MAIN');
+      druid.setState('INVENTORY');
       if (!await druid.progressGameForDays(DAYS_TO_GATHER)) {
         return false;
       }
@@ -1865,6 +2114,9 @@ async function handleEnter(druid) {
 function handleCursor(druid, key) {
   const increment = key === 'k' ? -1 : 1;
   switch (druid.gameState) {
+    case 'MAIN':
+      druid.updateCursorMain(druid.cursorMain + increment);
+      break;
     case 'TREATING':
     case 'DISCOVERING':
     case 'SELECT_POTION':
@@ -1937,6 +2189,8 @@ async function mainLoop(druid, key, isBrowser) {
           return true;
         }
         break;
+      case '$':
+        break;
       case 'ESC':
         return false;
       default:
@@ -1954,49 +2208,58 @@ async function mainLoop(druid, key, isBrowser) {
     return true;
   } catch (err) {
     console.log(err);
-    prompt(err);
+    if (isBrowser) {
+      prompt(err);
+    }
     return false;
   }
   return true;
 }
 
 const druid = new Druid();
-function runLoop(key, isBrowser) {
+function runLoop(key, isBrowser = true) {
   return mainLoop(druid, key, isBrowser);
 }
 
-runLoop('j', false);
+if (typeof window !== 'undefined') { 
+  // Browser.
+  runLoop('k', true);
+} else if (typeof global !== 'undefined') {
+  // Node.
+  const readline = require('readline');
+  const { stdin: input, stdout: output } = require('process');
+  
+  readline.emitKeypressEvents(input);
+  input.setRawMode(true);
+  
+  const { execSync } = require('child_process');
+  
+  // Function to clear the terminal
+  function clearTerminal() {
+    execSync('clear', { stdio: 'inherit' });
+  }
 
-const readline = require('readline');
-const { stdin: input, stdout: output } = require('process');
-
-readline.emitKeypressEvents(input);
-input.setRawMode(true);
-
-const { execSync } = require('child_process');
-
-// Function to clear the terminal
-function clearTerminal() {
-  execSync('clear', { stdio: 'inherit' });
-}
-
-
-input.on('keypress', (str, key) => {
   clearTerminal();
-  if (str === '\r' || str === '\n') {
-    str = "ENTER"
-  } else if (key === '\x1b') {
-    str = "ESC"
-  }
-
-  if (!runLoop(str, false)) {
-    console.log('Exiting...');
-    process.exit();
-  }
-
-  // If the user pressed "q", exit the process
-  if (key.name === 'q') {
+  runLoop('k', false);
+  
+  input.on('keypress', (str, key) => {
+    clearTerminal();
+    if (str === '\r' || str === '\n') {
+      str = "ENTER"
+    } else if (key === '\x1b') {
+      str = "ESC"
+    }
+  
+    if (!runLoop(str, false)) {
       console.log('Exiting...');
       process.exit();
-  }
-});
+    }
+  
+    // If the user pressed "q", exit the process
+    if (key.name === 'q') {
+        console.log('Exiting...');
+        process.exit();
+    }
+  });
+}
+
