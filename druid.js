@@ -1,5 +1,5 @@
 import {HerbGathering} from './environment.js';
-import {herbMap, availableHerbs, updateHerbMap} from './herbs.js';
+import {availableHerbs, herbMap, updateHerbMap} from './herbs.js';
 import {Patient} from './patient.js';
 import {Potion} from './potion.js';
 import {villages} from './village.js';
@@ -61,7 +61,8 @@ export class Druid {
   }
 
   discoverHerbEffect(herbName) {
-    if (!herbMap[herbName].known) {  // Check if the effect was previously unknown
+    if (!herbMap[herbName]
+             .known) {  // Check if the effect was previously unknown
       herbMap[herbName].known = true;
       this.msg.push(`You unveiled ${herbName}.`);
       this.msg.push(`${herbMap[herbName].effectDescription}`);
@@ -83,16 +84,16 @@ export class Druid {
     this.writeMsg(`Gathered herbs in the ${env.name}.`);
     this.progressGameForDays(DAYS_TO_GATHER);
     this.writeMsg(`${DAYS_TO_GATHER} days have passed.`);
-    this.writeMsg("");
+    this.writeMsg('');
     for (let h of gatheredHerbs) {
       let total = this.herbGathering.inventory[h];
       this.writeMsg(`+1 ${h} (total: ${total})`);
     }
-    this.writeMsg("");
+    this.writeMsg('');
     this.writeMsg(`Total ingredients: ${totalHerbs}`);
     this.setState('MSG');
   }
-  
+
   travel(pos) {
     const village = villages[pos];
     this.clearMsgs();
@@ -126,22 +127,28 @@ export class Druid {
           this.msg.push(`Patient ${patient.id} in ${v.name} has died.`);
           const patch = v.createMiasmaPatch();
           patch.increaseStrength();
-          this.msg.push(`A new miasma patch has formed at ${patch.location}.`);
-          patient.powerups.push([`Death`, () => {
-            v.patients = v.patients.filter(p => p !== patient);
-            v.deadCount += 1;
-          }]);
+          patient.powerups.push([
+            `Death`,
+            () => {
+              v.patients = v.patients.filter(p => p !== patient);
+              v.deadCount += 1;
+            }
+          ]);
           patient.logMsg(`${patient.id} died!`);
+          v.logMsg(`A new miasma patch has formed at ${patch.location}.`);
         } else if (patient.isCured() && patient.cured === false) {
           patient.cured = true;
           let druid = this;
           patient.logMsg(`${patient.id} is cured!`);
-          this.msg.push(`Patient ${patient.id} in ${
+          v.logMsg(`Patient ${patient.id} in ${
               v.name} is cured. You gained a crystal.`);
-          patient.powerups.push([`Crystal`, () => {
-            v.curedCount += 1;
-            druid.crystals += 1;
-          }]);
+          patient.powerups.push([
+            `Crystal`,
+            () => {
+              v.curedCount += 1;
+              druid.crystals += 1;
+            }
+          ]);
           if (!patient.disease.diseaseType.known) {
             patient.disease.diseaseType.known = true;
             const dName = patient.disease.diseaseType.name;
@@ -152,7 +159,7 @@ export class Druid {
       });
 
       v.patients.forEach(patient => {
-        if (patient.cured || patient.dead && patient.powerups.length === 0) {
+        if ((patient.cured || patient.dead) && patient.powerups.length === 0) {
           v.patients = v.patients.filter(p => p !== patient);
         }
       });
@@ -242,7 +249,7 @@ export class Druid {
         break;
       case 'WAIT':
         this.progressGame();
-        this.setState("VILLAGE");
+        this.setState('VILLAGE');
         break;
       default:
         if (['TREATING', 'DISCOVERING', 'SELECT_POTION'].includes(newState)) {
@@ -325,7 +332,7 @@ export class Druid {
 
     const patch = this.currentVillage().miasmaPatches[this.cursorMiasma];
     patch.decreaseStrength();
-    
+
     this.writeMsg(`Performed ritual in the miasma patch in ${patch.location}.`);
     this.progressGameForDays(DAYS_TO_REMOVE_MIASMA);
     this.writeMsg(`${DAYS_TO_REMOVE_MIASMA} days have passed.`);
@@ -336,8 +343,7 @@ export class Druid {
     keys.sort(() => Math.random() - 0.5);
 
     const newHerbs = [
-      'Solar Blossom', 'Shadowthorn', 'Sky Fungus', 'Verdant Vine',
-      'Ironleaf'
+      'Solar Blossom', 'Shadowthorn', 'Sky Fungus', 'Verdant Vine', 'Ironleaf'
     ];
 
     newHerbs.forEach(newHerb => {
