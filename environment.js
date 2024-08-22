@@ -1,7 +1,5 @@
 import {availableHerbs, herbMap} from './herbs.js';
 
-const NUM_GATHER = 3;
-
 class Environment {
   constructor(name, herbs) {
     this.name = name;
@@ -69,54 +67,6 @@ class Environment {
     return herbIndex !== -1 && this.known[herbIndex];
   }
 }
-
-export class HerbGathering {
-  constructor() {
-    this.availableHerbs = availableHerbs;
-    this.inventory = Object.fromEntries(availableHerbs.map(herb => [herb, 0]));
-    this.justAcquired =
-        Object.fromEntries(availableHerbs.map(herb => [herb, 0]));
-    this.maxInventory = 40;
-  }
-
-  getTotal() {
-    return Object.values(this.inventory).reduce((acc, value) => acc + value, 0);
-  }
-
-  gather(environment, numHerbs = NUM_GATHER) {
-    const gatheredHerbs = environment.gatherHerbs(numHerbs);
-    for (let herb of gatheredHerbs) {
-      let totalHerbs = this.getTotal();
-      if (totalHerbs >= this.maxInventory) {
-        break;
-      }
-      this.inventory[herb] += 1;
-      this.justAcquired[herb] += 1;
-    }
-    return gatheredHerbs;
-  }
-
-  useHerb(herbName) {
-    if ((this.inventory[herbName] || 0) > 0) {
-      this.inventory[herbName] -= 1;
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  useTwoHerbs(herbName1, herbName2) {
-    if ((this.inventory[herbName1] || 0) > 0 &&
-        (this.inventory[herbName2] || 0) > 0) {
-      this.inventory[herbName1] -= 1;
-      this.inventory[herbName2] -= 1;
-      return true;
-    } else {
-      return false;
-    }
-  }
-}
-
 
 const forest = new Environment(
     'Forest',

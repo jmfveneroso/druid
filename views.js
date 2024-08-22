@@ -31,8 +31,14 @@ export function displayScore(druid, screen, x = 0, y = 0) {
     }
   });
 
-  const scoreText = `Days: ${druid.days}    Crystals: ${druid.crystals}`;
-  writeToScreen(screen, x, y + 2, scoreText, {type: 'TOP_BAR_CLICK'});
+  writeToScreen(screen, x, y + 2, "---", {type: 'DECREASE_THEORETICAL_DAYS'});
+
+  const scoreText = ` Days: ${druid.days} (${druid.theoreticalDays}) `;
+  writeToScreen(screen, x + 3, y + 2, scoreText, {type: 'TOP_BAR_CLICK'});
+
+  writeToScreen(screen, x + scoreText.length + 3, y + 2, "+++", {type: 'INCREASE_THEORETICAL_DAYS'});
+  
+  writeToScreen(screen, x + scoreText.length + 10, y + 2, `Crystals: ${druid.crystals}`, {type: 'TOP_BAR_CLICK'});
 }
 
 export function displayVillageInfo(druid, village, screen, x = 0, y = 0) {
@@ -68,7 +74,6 @@ export function displayOrgan(druid, organ, screen, x = 0, y = 0) {
   const hp_s = zfill(organ.hp);
   const decrease_s = organ.decrease !== 0 ? organ.decrease : ' ';
   const status = `${strName} ${diseased} ${hp_s} / 10 ${decrease_s}`;
-  organ.decrease = 0;
   return status;
 }
 
@@ -126,52 +131,50 @@ export function displayPatients(druid, screen, x = 0, y = 0) {
   writeToScreen(screen, x, y, lineStr, {type: 'PATIENT_LOG'});
   y += 1;
 
-  if (village.patients.length > 0) {
-    const numOrgans = village.patients[0].organs.length;
-    for (let i = 0; i < numOrgans; i++) {
-      lineStr = '  ';
-      for (let j = druid.windowP; j < end; j++) {
-        const organStr =
-            displayOrgan(druid, village.patients[j].organs[i], screen, x, y);
-        lineStr += organStr + ' '.repeat(colSize - organStr.length);
-      }
-      writeToScreen(screen, x, y, lineStr);
-      y += 1;
-    }
+  if (village.patients.length <= 0) {
+    return;
+  }
 
-    for (let i = 0; i < druid.maxDrugs; i++) {
-      lineStr = '  ';
-      for (let j = druid.windowP; j < end; j++) {
-        let drugStr = '';
-        if (village.patients[j].drugsTaken.length > i) {
-          const drug = village.patients[j].drugsTaken[i];
-          const effectDescription = herbMap[drug.name].known ?
-              herbMap[drug.name].effectDescription :
-              '???';
-          drugStr = `+ ${drug.name} (${drug.daysRemaining}) ` +
-              `${effectDescription}`;
-        }
-        lineStr += drugStr;
-      }
-      writeToScreen(screen, x, y, lineStr);
-      y += 1;
-    }
+  let patient = village.patients[druid.windowP];
 
-    let patient = village.patients[druid.windowP];
-    for (let i = 0; i < 2; i++) {
-      if (i < patient.powerups.length) {
-        let str = `+ ${patient.powerups[i][0]}`;
-        let powerupFn = patient.powerups[i][1];
-        writeToScreen(
-            screen, x, y, str,
-            {type: 'POWERUP', patient: patient, pos: i, fn: powerupFn});
-      }
-      y += 1;
+  let [organs, drugsTaken] = patient.getOrgans(druid.theoreticalDays);
+
+  for (let i = 0; i < organs.length; i++) {
+    const organStr = displayOrgan(druid, organs[i], screen, x, y);
+    lineStr = '  ' + organStr + ' '.repeat(colSize - organStr.length);
+    writeToScreen(screen, x, y, lineStr);
+    y += 1;
+  }
+
+  for (let i = 0; i < druid.maxDrugs; i++) {
+    let drugStr = '';
+    if (drugsTaken.length > i) {
+      const drug = drugsTaken[i];
+      const effectDescription = herbMap[drug.name].known ?
+          herbMap[drug.name].effectDescription :
+          '???';
+      drugStr = `+ (${drug.daysRemaining}) ${drug.name} - ` +
+          `${effectDescription}`;
     }
+    writeToScreen(screen, x, y, '  ' + drugStr);
+    y += 1;
+  }
+
+  for (let i = 0; i < 2; i++) {
+    if (i < patient.powerups.length) {
+      let str = `+ ${patient.powerups[i][0]}`;
+      let powerupFn = patient.powerups[i][1];
+      writeToScreen(
+          screen, x, y, str,
+          {type: 'POWERUP', patient: patient, pos: i, fn: powerupFn});
+    }
+    y += 1;
   }
 
   y += 1;
   displayInventory(druid, screen, 1, y, false);
+
+  patient.clearOrganInfo();
   return y;
 }
 
@@ -246,7 +249,8 @@ export function displayInventory(
     const effectDescription =
         herbMap[herb].known ? herbMap[herb].effectDescription : '???';
 
-    const env = (all) ? getEnv(herb) : '';
+    // const env = (all) ? getEnv(herb) : '';
+    const env = druid.herbGathering.isCloseToDeterioration(herb) ? '~' : ' ';
 
     let selected = ' ';
     if (druid.selectedHerbs.includes(herb)) {

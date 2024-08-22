@@ -1,4 +1,4 @@
-import {HerbGathering} from './environment.js';
+import {HerbGathering} from './gather.js';
 import {availableHerbs, herbMap, updateHerbMap} from './herbs.js';
 import {Patient} from './patient.js';
 import {Potion} from './potion.js';
@@ -23,6 +23,7 @@ export class Druid {
 
     this.mourning = 0;
     this.days = 1;
+    this.theoreticalDays = 1;
     this.gameState = 'MAIN';
     this.setState('MAIN');
     this.msg = ['Welcome to The Druid Game!'];
@@ -42,7 +43,7 @@ export class Druid {
     this.initCombinationMap();
     this.mainMenuOptions = {
       '(V)illage': 'VILLAGE',
-      '(I)nventory': 'INVENTORY',
+      '(I)nventory': 'POTION',
       '(G)ather': 'CHOOSE_ENVIRONMENT',
       '(T)ravel': 'TRAVELLING',
       '(W)ait': 'WAIT',
@@ -62,9 +63,12 @@ export class Druid {
     this.herbGathering.useHerb(herbName);
   }
 
+  knowsHerbEffect(herbName) {
+    return herbMap[herbName].known;
+  }
+
   discoverHerbEffect(herbName) {
-    if (!herbMap[herbName]
-             .known) {  // Check if the effect was previously unknown
+    if (!this.knowsHerbEffect(herbName)) {
       herbMap[herbName].known = true;
       this.msg.push(`You unveiled ${herbName}.`);
       this.msg.push(`${herbMap[herbName].effectDescription}`);
@@ -94,6 +98,7 @@ export class Druid {
     this.writeMsg('');
     this.writeMsg(`Total ingredients: ${totalHerbs}`);
     this.setState('MSG');
+    this.setNextState('CHOOSE_ENVIRONMENT');
   }
 
   travel(pos) {
@@ -103,7 +108,6 @@ export class Druid {
     this.writeMsg(`Travelled to ${village.name}.`);
     this.progressGameForDays(DAYS_TO_TRAVEL);
     this.writeMsg(`${DAYS_TO_TRAVEL} days have passed.`);
-    this.progressGameForDays(DAYS_TO_TRAVEL);
     this.setState('MSG');
   }
 
@@ -121,8 +125,10 @@ export class Druid {
 
     villages.forEach(v => {
       v.patients.forEach(patient => {
-        patient.progressDiseases(this.days);
-        patient.applyDrugs(this, this.days);
+        if (!patient.dead && !patient.cured) {
+          patient.progress(this, this.days);
+        }
+
         if (patient.isDead() && patient.dead === false) {
           patient.dead = true;
           this.mourning += MOURNING_DURATION;
@@ -136,7 +142,8 @@ export class Druid {
               v.deadCount += 1;
             }
           ]);
-          patient.logMsg(`${patient.id} died!`);
+          patient.logMsg(`${patient.id} has died!`);
+          v.logMsg(`${patient.id} has died!`);
           v.logMsg(`A new miasma patch has formed at ${patch.location}.`);
         } else if (patient.isCured() && patient.cured === false) {
           patient.cured = true;
@@ -167,7 +174,9 @@ export class Druid {
       });
     });
 
+    this.herbGathering.progress();
     this.days += 1;
+    this.theoreticalDays = this.days;
     return true;
   }
 
@@ -421,5 +430,11 @@ export class Druid {
       }
     });
     return processedLogs;
+  }
+
+  increaseTheoreticalDays(increase) {
+    this.theoreticalDays += increase;
+    this.theoreticalDays = Math.max(1, this.theoreticalDays);
+    this.theoreticalDays = Math.min(this.theoreticalDays, this.days);
   }
 }

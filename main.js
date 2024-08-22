@@ -6,13 +6,7 @@ function handleClick(druid, data) {
   if (data !== undefined) {
     switch (data.type) {
       case "TOP_BAR_CLICK":
-        switch (druid.gameState) {
-          case "TREATING_PATIENT":
-          case "PATIENT_LOG":
-          case "REMOVE_MIASMA":
-            druid.setState('VILLAGE');
-            break;
-        }
+        druid.increaseTheoreticalDays(+100);
         break;
       case "MAIN_MENU_CLICK":
         let key = Object.keys(druid.mainMenuOptions)[data.pos];
@@ -64,7 +58,7 @@ function handleClick(druid, data) {
         if (druid.selectedHerbs.length === 2) {
           druid.combinePotion();
           druid.setState('MSG');
-          druid.setNextState('INVENTORY');
+          druid.setNextState('POTION');
         }
         break;
       case "DISCARD_INGREDIENT":
@@ -76,7 +70,12 @@ function handleClick(druid, data) {
       case "POWERUP":
         data.fn();
         data.patient.powerups.splice(data.pos, 1); // Remove powerup.
-        druid.setState('MSG');
+        break;
+      case "DECREASE_THEORETICAL_DAYS":
+        druid.increaseTheoreticalDays(-1);
+        break;
+      case "INCREASE_THEORETICAL_DAYS":
+        druid.increaseTheoreticalDays(1);
         break;
       case "MSG":
         break;

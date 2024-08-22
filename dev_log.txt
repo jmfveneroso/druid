@@ -1,11 +1,36 @@
-- Herbs can deteriorate if not used.
-- on env selection screen. Herb effects should be listed
-- remove powerups for effects that are already known
-- remove message for death and crystal
-- stop progressing disease when patient already dead or cured
+- on environment exploration, the druid could be presented with a list of herbs 
+  out of which they can pick the 3 best ones (lists can vary from 1 to 5 depending 
+                                              on miasma strength)
 
+- miasma patches could affect herb growth rate near the villages
+
+- the druid can keep exploring an env to gain better yield of certain drugs 
+  (the probability mass moves from drugs with more chance to drugs with less 
+   chance)
+
+- palliative care drugs that slow a disease, protects certain organ but do not cure the 
+  patient could be more common and quicker to act than curing drugs.
+
+- diseases that affect two organs from start
 
 Game play change
+
+- on getting to a village the druid can get information of what changed there. Village logs can also be accessed at any time
+
+Centralized patient logging. 
+  - The druid can access all patient logs at any time.
+  - Patients are ranked according to gravity, closeness to death.
+  - A table lists patients, their villages, gravity, how long until next disease effect and the effect
+  - This table also lists which herbs are treating the patient and what is the expected effect
+  - The druid can advance a few days theoretically reasoning if a treatment is expected to work
+  - disease catalog lists what each disease does at a timestep
+
+Disease
+- more difficult diseases could be released as the miasma patches grow
+- disease mutation. A disease can change its behavior with time as miasma patches 
+  grow stronger. The names could be preceded by acute, severe, deadly.
+- disease could get resistant to a certain herb if used too often.
+- more critical diseases could give more or better crystals
 
 Patients 
 - assign a backstory to Patients
@@ -17,44 +42,14 @@ Patients
 - certain patients could yield potion recipes on cure
 
 
-Disease
-- disease mutation. A disease can change its behavior with time as miasma patches 
-  grow stronger. The names could be preceded by acute, severe, deadly.
-- disease could get resistant to a certain herb if used too often.
-- more critical diseases could give more or better crystals
-- diseases evolve in fewer time steps but it makes each time step more memorable.
-- more difficult diseases could be released as the miasma patches grow
-
-
-Misc
-- on environment exploration, the druid could be presented with a list of herbs 
-  out of which they can pick the 3 best ones
-- the druid can keep exploring an env to gain better yield of certain drugs
-- miasma patches could affect herb growth rate near the villages
-- palliative care drugs that slow a disease, protects certain organ but do not cure the 
-  patient could be more common and quicker to act than curing drugs.
-
 
 Drugs
 - drugs could have different effects depending on the stage of the disease
 
-
-Centralized patient logging. 
-  - The druid can access all patient logs at any time.
-  - Patients are ranked according to gravity, closeness to death.
-  - A table lists patients, their villages, gravity, how long until next disease effect and the effect
-  - This table also lists which herbs are treating the patient and what is the expected effect
-  - The druid can advance a few days theoretically reasoning if a treatment is expected to work
-  - disease catalog lists what each disease does at a timestep
-
-- on getting to a village the druid can get information of what changed there. Village logs can also be accessed at any time
-
 - post office may sometimes inform the druid of another village's state
-
-
-
 
 - trade
 
 - druid progression. Level up could lead to other abilities such as to make 
   better use of the env or be able to mix drugs more often
+
