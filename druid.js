@@ -46,8 +46,10 @@ export class Druid {
       '(G)ather': 'CHOOSE_ENVIRONMENT',
       '(T)ravel': 'TRAVELLING',
       '(W)ait': 'WAIT',
+      '(L)og': 'MSG',
       // "druid": "DRUID",
     };
+    this.logStartAt = 0;
 
     // Druid leveling system
     this.level = 1;
@@ -224,28 +226,20 @@ export class Druid {
     this.gameState = newState;
     switch (newState) {
       case 'MAIN':
-        this.cursorMain = 0;
-        this.cursor = -1;
-        // this.cursorP = -1;
-        this.cursorE = -1;
-        this.cursorMiasma = -1;
-        this.cursorVillage = -1;
         this.selectedHerbs = [];
         break;
       case 'CHOOSE_ENVIRONMENT':
-        this.cursorE = 0;
         break;
       case 'REMOVE_MIASMA':
-        this.cursorMiasma = 0;
         break;
       case 'TREATING_PATIENT':
-        this.cursorP = this.windowP;
         break;
       case 'VILLAGE':
-        // this.cursorP = 0;
         break;
       case 'TRAVELLING':
-        this.cursorVillage = 0;
+        break;
+      case 'MSG':
+        this.logStartAt = 0;
         break;
       case 'WAIT':
         this.progressGame();
@@ -273,18 +267,30 @@ export class Druid {
         return;
       }
 
-      let revealedRunes1 = herbMap[herbName1].revealedRunes;
-      let revealedRunes2 = herbMap[herbName2].revealedRunes;
+      // Reveal matching runes.
+      // let revealedRunes1 = herbMap[herbName1].revealedRunes;
+      // let revealedRunes2 = herbMap[herbName2].revealedRunes;
+      // for (let i = 0; i < 3; i++) {
+      //   const rune1 = herbMap[herbName1].runes[i];
+      //   const rune2 = herbMap[herbName2].runes[i];
+      //   if (rune2 === complementaryRunes[rune1]) {
+      //     revealedRunes1[i] = herbMap[herbName1].runes[i];
+      //     revealedRunes2[i] = herbMap[herbName2].runes[i];
+      //   }
+      // }
+      // herbMap[herbName1].revealedRunes = revealedRunes1;
+      // herbMap[herbName2].revealedRunes = revealedRunes2;
+      // Reveal matching runes.
+
       for (let i = 0; i < 3; i++) {
-        const rune1 = herbMap[herbName1].runes[i];
-        const rune2 = herbMap[herbName2].runes[i];
-        if (rune2 === complementaryRunes[rune1]) {
-          revealedRunes1[i] = herbMap[herbName1].runes[i];
-          revealedRunes2[i] = herbMap[herbName2].runes[i];
+        if (herbMap[herbName1].revealedRunes[i] == '*') {
+          herbMap[herbName1].revealedRunes[i] = herbMap[herbName1].runes[i];
+          break;
+        } else if (herbMap[herbName2].revealedRunes[i] == '*') {
+          herbMap[herbName2].revealedRunes[i] = herbMap[herbName2].runes[i];
+          break;
         }
       }
-      herbMap[herbName1].revealedRunes = revealedRunes1;
-      herbMap[herbName2].revealedRunes = revealedRunes2;
 
       const potion = new Potion(this.selectedHerbs, this.combinationMap);
       if (potion.isSuccessful()) {
@@ -387,5 +393,33 @@ export class Druid {
 
   clearMsgs() {
     this.msg = [];
+  }
+
+  moveLog(offset, maxLen) {
+    this.logStartAt += offset;
+    this.logStartAt = Math.max(0, Math.min(this.logStartAt, maxLen));
+    console.log(offset);
+  }
+
+  processLogs(logs, maxLen) {
+    const processedLogs = [];
+
+    logs.forEach(log => {
+      if (log.length <= maxLen) {
+        processedLogs.push(log);
+      } else {
+        let startIndex = 0;
+        while (startIndex < log.length) {
+          let chunk = log.substring(startIndex, startIndex + maxLen);
+          if (startIndex !== 0) {
+            processedLogs[processedLogs.length - 1] += '...';
+            chunk = chunk;
+          }
+          processedLogs.push(chunk);
+          startIndex += maxLen;
+        }
+      }
+    });
+    return processedLogs;
   }
 }

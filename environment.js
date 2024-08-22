@@ -39,10 +39,7 @@ class Environment {
   }
 
   sumHerbChances() {
-    console.log(this.herbs);
     return this.herbs.reduce((totalChance, herb) => {
-      console.log(herb);
-      console.log(herbMap[herb]);
       return totalChance + herbMap[herb].chance;
     }, 0);
   }
@@ -66,6 +63,11 @@ class Environment {
     }
     return str;
   }
+
+  hasHerb(herb) {
+    const herbIndex = this.herbs.indexOf(herb);
+    return herbIndex !== -1 && this.known[herbIndex];
+  }
 }
 
 export class HerbGathering {
@@ -74,7 +76,7 @@ export class HerbGathering {
     this.inventory = Object.fromEntries(availableHerbs.map(herb => [herb, 0]));
     this.justAcquired =
         Object.fromEntries(availableHerbs.map(herb => [herb, 0]));
-    this.maxInventory = 20;
+    this.maxInventory = 40;
   }
 
   getTotal() {
@@ -161,7 +163,8 @@ function assignHerbsToEnvironments(environments, availableHerbs, herbMap) {
         const herb = shuffledHerbs[i];
         // const herbChance = herbMap[herb].chance;
 
-        // // Select herb if it keeps the total chance sum <= 1 or is the last herb
+        // // Select herb if it keeps the total chance sum <= 1 or is the last
+        // herb
         // // to be selected
         // if (sumChance + herbChance <= 1 || selectedHerbs.length === 4) {
         //   if (!bestHerb || herbChance > bestHerb.chance) {
