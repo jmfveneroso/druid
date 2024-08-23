@@ -25,6 +25,89 @@ const suffixes = [
   'meadow', 'ridge', 'grove', 'stone', 'fall',   'reach'
 ];
 
+export class VillageMap {
+  constructor(width = 42, height = 20, numVillagers = 10) {
+    this.width = width;
+    this.height = height;
+    this.grid = Array.from({ length: height }, () => Array(width).fill(' '));
+    this.numVillagers = Math.min(numVillagers, 10);
+  }
+
+  placeCentralSquare() {
+    const x = Math.floor(this.width / 2) - 2;
+    const y = Math.floor(this.height / 2) - 2;
+    this.drawRect(x, y, 4, 4, 'S');
+  }
+
+  placeTemple() {
+    this.placeStructure('T', 4, 3);
+  }
+
+  placeGraveyard() {
+    this.placeStructure('G', 5, 3);
+  }
+
+  placeAlchemyShop() {
+    this.placeStructure('A', 4, 2);
+  }
+
+  placeFields() {
+    const numFields = Math.floor(Math.random() * 3) + 1;
+    for (let i = 0; i < numFields; i++) {
+      this.placeStructure('F', 6, 4);
+    }
+  }
+
+  placeHouses() {
+    for (let i = 0; i < this.numVillagers; i++) {
+      const isSick = Math.random() < 0.3;  // 30% chance of being sick
+      this.placeStructure(isSick ? 'H' : 'h', 2, 2);
+    }
+  }
+
+  placeMiasmaPatches(miasmaPatches) {
+    miasmaPatches.forEach(patch => {
+      this.placeStructure('M', patch.strength + 1, patch.strength + 1);
+    });
+  }
+
+  placeStructure(symbol, width, height) {
+    let x, y;
+    do {
+      x = Math.floor(Math.random() * (this.width - width));
+      y = Math.floor(Math.random() * (this.height - height));
+    } while (!this.canPlaceStructure(x, y, width, height));
+    this.drawRect(x, y, width, height, symbol);
+  }
+
+  canPlaceStructure(x, y, width, height) {
+    for (let i = y; i < y + height; i++) {
+      for (let j = x; j < x + width; j++) {
+        if (this.grid[i][j] !== ' ') return false;
+      }
+    }
+    return true;
+  }
+
+  drawRect(x, y, width, height, symbol) {
+    for (let i = y; i < y + height; i++) {
+      for (let j = x; j < x + width; j++) {
+        this.grid[i][j] = symbol;
+      }
+    }
+  }
+
+  generateMap(miasmaPatches) {
+    this.placeCentralSquare();
+    this.placeTemple();
+    this.placeGraveyard();
+    this.placeAlchemyShop();
+    this.placeFields();
+    this.placeHouses();
+    this.placeMiasmaPatches(miasmaPatches);
+  }
+}
+
 const BASE_SPREAD_CHANCE = 0.05;
 
 class MiasmaPatch {
@@ -82,6 +165,8 @@ export class Village {
 
     this.initializeMiasmaPatches();
     this.logMsg(`${this.name} has ${this.patients.length} sick villagers.`);
+
+    this.villageMap = new VillageMap();
   }
 
   addPatient() {
