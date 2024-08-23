@@ -85,22 +85,28 @@ function silvervineEffect(patient) {
   // Stops disease progression for 10 time steps
   patient.silvervineActive = true;
   patient.silvervineCounter = 10;
+  patient.organs.forEach(function(organ) {
+    organ.treat(-2);
+  });
 }
 
 function mossbellEffect(patient) {
   // Increases the health points of the Heart and Liver by 2 each
   patient.organs.forEach(function(organ) {
-    if (organ.name === 'Heart' || organ.name === 'Liver') {
-      organ.treat(2);
+    if (organ.name === 'Heart') {
+      organ.treat(4, false, false);
+    } else if (organ.name === 'Liver') {
+      organ.treat(-2);
     }
   });
 }
 
 function ironbarkSapEffect(patient) {
-  // Increases the health points of the Lungs and Kidneys by 2 each
   patient.organs.forEach(function(organ) {
-    if (organ.name === 'Lungs' || organ.name === 'Kidneys') {
-      organ.treat(2);
+    if (organ.name === 'Brain') {
+      organ.treat(4, false, false);
+    } else if (organ.name === 'Lungs') {
+      organ.treat(-2);
     }
   });
 }
@@ -108,8 +114,8 @@ function ironbarkSapEffect(patient) {
 function whisperleafEffect(patient) {
   // Increases the health points of the Brain and Heart by 2 each
   patient.organs.forEach(function(organ) {
-    if (organ.name === 'Brain' || organ.name === 'Heart') {
-      organ.treat(2);
+    if (organ.name === 'Lungs' || organ.name === 'Heart') {
+      organ.treat(2, false, false);
     }
   });
 }
@@ -117,52 +123,42 @@ function whisperleafEffect(patient) {
 function crimsonCloverEffect(patient) {
   // Increases the health points of all organs by 1
   patient.organs.forEach(function(organ) {
-    organ.treat(1);
+    organ.treat(1, false, false);
   });
 }
 
 function dewrootEffect(patient) {
-  // Increases the health points of the Heart by 6 and reduces the health points
-  // of the Lungs by 2
   patient.organs.forEach(function(organ) {
-    if (organ.name === 'Heart') {
-      organ.treat(6);
-    } else if (organ.name === 'Lungs') {
-      organ.treat(-2);
+    if (organ.name === 'Liver' || organ.name === 'Kidneys') {
+      organ.treat(2, false, false);
     }
   });
 }
 
 function fireweedEffect(patient) {
-  // Increases the health points of the Lungs by 6 and reduces the health points
-  // of the Liver by 2
   patient.organs.forEach(function(organ) {
     if (organ.name === 'Lungs') {
-      organ.treat(6);
-    } else if (organ.name === 'Liver') {
-      organ.treat(-2);
-    }
-  });
-}
-
-function bittermintEffect(patient) {
-  // Increases the health points of the Liver by 6 and reduces the health points
-  // of the Kidneys by 2
-  patient.organs.forEach(function(organ) {
-    if (organ.name === 'Liver') {
-      organ.treat(6);
+      organ.treat(4, false, false);
     } else if (organ.name === 'Kidneys') {
       organ.treat(-2);
     }
   });
 }
 
-function wolfsbaneEffect(patient) {
-  // Increases the health points of the Kidneys by 6 and reduces the health
-  // points of the Brain by 2
+function bittermintEffect(patient) {
   patient.organs.forEach(function(organ) {
     if (organ.name === 'Kidneys') {
-      organ.treat(6);
+      organ.treat(4, false, false);
+    } else if (organ.name === 'Heart') {
+      organ.treat(-2);
+    }
+  });
+}
+
+function wolfsbaneEffect(patient) {
+  patient.organs.forEach(function(organ) {
+    if (organ.name === 'Liver') {
+      organ.treat(4, false, false);
     } else if (organ.name === 'Brain') {
       organ.treat(-2);
     }
@@ -172,12 +168,12 @@ function wolfsbaneEffect(patient) {
 function glimmerFernEffect(patient) {
   // Increases the health points of a random diseased organ by 4
   let diseasedOrgans = patient.organs.filter(function(organ) {
-    return organ.diseased;
+    return organ.critical || organ.diseased;
   });
   if (diseasedOrgans.length > 0) {
     let randomOrgan =
         diseasedOrgans[Math.floor(Math.random() * diseasedOrgans.length)];
-    randomOrgan.treat(4);
+    randomOrgan.treat(4, true);
   }
 }
 
@@ -235,115 +231,127 @@ let BASE_DURATION = 3;
 
 // Define possible effects as an array of objects in JavaScript
 let possibleEffects = [
+  // Palliative.
+  {
+    description: '-2 All, stops disease 10x.',
+    chance: 0.4,
+    effectFunction: silvervineEffect,
+    finalFunction: noEffect,
+    duration: 1
+  },
+  {
+    description: '+4 Heart -2 Liver (NC).',
+    chance: 0.4,
+    effectFunction: mossbellEffect,
+    finalFunction: noEffect,
+    duration: 1
+  },
+  {
+    description: '+4 Lungs -2 Kidneys (NC).',
+    chance: 0.4,
+    effectFunction: fireweedEffect,
+    finalFunction: noEffect,
+    duration: 1
+  },
+  {
+    description: '+4 Liver -2 Brain (NC).',
+    chance: 0.4,
+    effectFunction: wolfsbaneEffect,
+    finalFunction: noEffect,
+    duration: 1
+  },
+  {
+    description: '+4 Kidney -2 Heart (NC).',
+    chance: 0.4,
+    effectFunction: bittermintEffect,
+    finalFunction: noEffect,
+    duration: 1
+  },
+  {
+    description: '+4 Brain -2 Lungs (NC).',
+    chance: 0.4,
+    effectFunction: ironbarkSapEffect,
+    finalFunction: noEffect,
+    duration: 1
+  },
+  {
+    description: '+1 All (NC).',
+    chance: 0.4,
+    effectFunction: crimsonCloverEffect,
+    finalFunction: noEffect,
+    duration: 0
+  },
+  {
+    description: '+2 Heart +2 Lungs (NC).',
+    chance: 0.4,
+    effectFunction: whisperleafEffect,
+    finalFunction: noEffect,
+    duration: 1
+  },
+  {
+    description: '+2 Liver +2 Kidneys (NC).',
+    chance: 0.4,
+    effectFunction: dewrootEffect,
+    finalFunction: noEffect,
+    duration: 1
+  },
+  {
+    description: 'Next potion x2.',
+    chance: 0.4,
+    effectFunction: dragonscaleFungusEffect,
+    finalFunction: noEffect,
+    duration: 0
+  },
+
+  // Base.
   {
     description: '+4 Heart.',
-    chance: 0.5,
+    chance: 0.2,
     effectFunction: moonrootEffect,
     finalFunction: noEffect,
     duration: BASE_DURATION
   },
   {
-    description: 'Stops disease 10x.',
-    chance: 0.15,
-    effectFunction: silvervineEffect,
-    finalFunction: noEffect,
-    duration: BASE_DURATION
-  },
-  {
-    description: '+6 Lungs -2 Liver.',
-    chance: 0.15,
-    effectFunction: fireweedEffect,
-    finalFunction: noEffect,
-    duration: BASE_DURATION
-  },
-  {
-    description: '+8 lowest else -3.',
-    chance: 0.05,
-    effectFunction: phoenixAshEffect,
-    finalFunction: noEffect,
-    duration: BASE_DURATION
-  },
-  {
-    description: '+1 All.',
-    chance: 0.15,
-    effectFunction: crimsonCloverEffect,
-    finalFunction: noEffect,
-    duration: BASE_DURATION
-  },
-  {
     description: '+4 Lungs.',
-    chance: 0.5,
+    chance: 0.2,
     effectFunction: sunleafEffect,
     finalFunction: noEffect,
     duration: BASE_DURATION
   },
   {
-    description: '+2 Heart +2 HP Liver.',
-    chance: 0.25,
-    effectFunction: mossbellEffect,
-    finalFunction: noEffect,
-    duration: BASE_DURATION
-  },
-  {
-    description: 'Full heal R (*) organ.',
-    chance: 0.05,
-    effectFunction: serpentsFangEffect,
-    finalFunction: noEffect,
-    duration: BASE_DURATION
-  },
-  {
-    description: '+6 Kidneys -2 Brain.',
-    chance: 0.1,
-    effectFunction: wolfsbaneEffect,
-    finalFunction: noEffect,
-    duration: BASE_DURATION
-  },
-  {
-    description: '+6 Liver -2 Kidneys.',
-    chance: 0.1,
-    effectFunction: bittermintEffect,
-    finalFunction: noEffect,
-    duration: BASE_DURATION
-  },
-  {
     description: '+4 Liver.',
-    chance: 0.3,
+    chance: 0.2,
     effectFunction: nightshadeBerryEffect,
     finalFunction: noEffect,
     duration: BASE_DURATION
   },
   {
     description: '+4 Kidneys.',
-    chance: 0.3,
+    chance: 0.2,
     effectFunction: bloodthornEffect,
     finalFunction: noEffect,
     duration: BASE_DURATION
   },
   {
-    description: '+2 Lungs +2 Kidneys.',
-    chance: 0.15,
-    effectFunction: ironbarkSapEffect,
+    description: '+4 Brain.',
+    chance: 0.2,
+    effectFunction: lunarBlossomEffect,
+    finalFunction: noEffect,
+    duration: BASE_DURATION
+  },
+
+  // Power.
+  {
+    description: '+8 lowest else -3.',
+    chance: 0.1,
+    effectFunction: phoenixAshEffect,
     finalFunction: noEffect,
     duration: BASE_DURATION
   },
   {
-    description: '+4 R (D) organ.',
+    description: '+4 R (*) or (D) organ.',
     chance: 0.1,
     effectFunction: glimmerFernEffect,
-    finalFunction: noEffect,
-    duration: BASE_DURATION
-  },
-  {
-    description: '+2 Brain +2 Heart.',
-    chance: 0.15,
-    effectFunction: whisperleafEffect,
-    finalFunction: noEffect,
-    duration: BASE_DURATION
-  },
-  {
-    description: '+4 Brain.',
-    chance: 0.5,
-    effectFunction: lunarBlossomEffect,
     finalFunction: noEffect,
     duration: BASE_DURATION
   },
@@ -355,16 +363,9 @@ let possibleEffects = [
     duration: BASE_DURATION
   },
   {
-    description: '+6 Heart -2 Lungs.',
-    chance: 0.2,
-    effectFunction: dewrootEffect,
-    finalFunction: noEffect,
-    duration: BASE_DURATION
-  },
-  {
-    description: 'Next potion x2.',
-    chance: 0.15,
-    effectFunction: dragonscaleFungusEffect,
+    description: 'Full heal R (*) organ.',
+    chance: 0.05,
+    effectFunction: serpentsFangEffect,
     finalFunction: noEffect,
     duration: BASE_DURATION
   },
@@ -379,18 +380,12 @@ let possibleEffects = [
 
 // Define the available herbs as an array in JavaScript
 export let availableHerbs = [
-  'Moonroot',      'Sunleaf',
-  'Night Berry',   'Bloodthorn',
-  'Lunar Blossom', 'Dragonscale',
-  'Silvervine',    'Mossbell',
-  'Ironbark Sap',  'Whisperleaf',
-  'Crimson Clover','Dewroot',
-  'Fireweed',      'Bittermint',
-  'Wolfsbane',     'Glimmer Fern',
-  'Basilisk Scale','Serpent\'s Fang',
-  'Phoenix Ash',   'Giant\'s Heart',
-  'Solar Blossom', 'Shadowthorn',
-  'Sky Fungus',    'Verdant Vine',
+  'Moonroot',       'Sunleaf',         'Night Berry',    'Bloodthorn',
+  'Lunar Blossom',  'Dragonscale',     'Silvervine',     'Mossbell',
+  'Ironbark Sap',   'Whisperleaf',     'Crimson Clover', 'Dewroot',
+  'Fireweed',       'Bittermint',      'Wolfsbane',      'Glimmer Fern',
+  'Basilisk Scale', 'Serpent\'s Fang', 'Phoenix Ash',    'Giant\'s Heart',
+  'Solar Blossom',  'Shadowthorn',     'Sky Fungus',     'Verdant Vine',
   'Ironleaf',
 ];
 
@@ -422,14 +417,14 @@ export let herbMap = initializeHerbMap(availableHerbs, possibleEffects);
 // Define the effects functions
 function solarBlossomEffect(patient) {
   patient.organs.forEach(organ => {
-    organ.treat(2, true);
+    organ.treat(3, true);
   });
 }
 
 function shadowthornEffect(patient) {
   patient.organs.forEach(organ => {
     if (organ.diseased) {
-      organ.treat(5);
+      organ.treat(10);
     }
   });
 }
@@ -446,10 +441,9 @@ function celestialFungusEffect(patient) {
 
 function verdantVineEffect(patient) {
   patient.organs.forEach(organ => {
-    organ.treat(2);
+    organ.treat(6);
   });
-  serpentsFangEffect(
-      patient);  // Assuming serpentsFangEffect is defined elsewhere
+  serpentsFangEffect(patient);
 }
 
 function ironleafEffect(patient) {
@@ -467,62 +461,22 @@ function ironleafEffect(patient) {
 
 export function updateHerbMap() {
   herbMap['Solar Blossom'] = new Herb(
-    'Solar Blossom',
-    '+2 all even (*).',
-    0.0,
-    noEffect,
-    solarBlossomEffect,
-    1,
-    true,
-    ['*', '*', '*'],
-    ['*', '*', '*']
-  );
+      'Solar Blossom', '+3 all even (*).', 0.0, noEffect, solarBlossomEffect, 1,
+      true, ['*', '*', '*'], ['*', '*', '*']);
 
   herbMap['Shadowthorn'] = new Herb(
-    'Shadowthorn',
-    '+5 all.',
-    0.0,
-    noEffect,
-    shadowthornEffect,
-    1,
-    true,
-    ['*', '*', '*'],
-    ['*', '*', '*']
-  );
+      'Shadowthorn', '+10 all.', 0.0, noEffect, shadowthornEffect, 1, true,
+      ['*', '*', '*'], ['*', '*', '*']);
 
   herbMap['Sky Fungus'] = new Herb(
-    'Sky Fungus',
-    '+1 all (*) prev (*).',
-    0.0,
-    noEffect,
-    celestialFungusEffect,
-    1,
-    true,
-    ['*', '*', '*'],
-    ['*', '*', '*']
-  );
+      'Sky Fungus', '+1 all (*) prev (*).', 0.0, noEffect,
+      celestialFungusEffect, 1, true, ['*', '*', '*'], ['*', '*', '*']);
 
   herbMap['Verdant Vine'] = new Herb(
-    'Verdant Vine',
-    '+2 all +2 R (*).',
-    0.0,
-    noEffect,
-    verdantVineEffect,
-    1,
-    true,
-    ['*', '*', '*'],
-    ['*', '*', '*']
-  );
+      'Verdant Vine', '+6 all +2 R (*).', 0.0, noEffect, verdantVineEffect, 1,
+      true, ['*', '*', '*'], ['*', '*', '*']);
 
   herbMap['Ironleaf'] = new Herb(
-    'Ironleaf',
-    '+5 to 2 (*) organs.',
-    0.0,
-    noEffect,
-    ironleafEffect,
-    1,
-    true,
-    ['*', '*', '*'],
-    ['*', '*', '*']
-  );
+      'Ironleaf', '+5 to 2 (*) organs.', 0.0, noEffect, ironleafEffect, 1, true,
+      ['*', '*', '*'], ['*', '*', '*']);
 }

@@ -18,7 +18,7 @@ function writeToScreen(screen, x, y, text, data = undefined) {
 }
 
 export function displayScore(druid, screen, x = 0, y = 0) {
-  const menuOptions = ['[Vil]', '[Inv]', '[Gat]', '[Tra]', '[Wai]', '[Log]'];
+  const menuOptions = ['[Vil]', '[Inv]', '[Gat]', '[Tra]', '[Wai]', '[Map]'];
   let menuX = x;
   menuOptions.forEach((option, index) => {
     writeToScreen(
@@ -31,14 +31,18 @@ export function displayScore(druid, screen, x = 0, y = 0) {
     }
   });
 
-  writeToScreen(screen, x, y + 2, "---", {type: 'DECREASE_THEORETICAL_DAYS'});
+  writeToScreen(screen, x, y + 2, '---', {type: 'DECREASE_THEORETICAL_DAYS'});
 
   const scoreText = ` Days: ${druid.days} (${druid.theoreticalDays}) `;
   writeToScreen(screen, x + 3, y + 2, scoreText, {type: 'TOP_BAR_CLICK'});
 
-  writeToScreen(screen, x + scoreText.length + 3, y + 2, "+++", {type: 'INCREASE_THEORETICAL_DAYS'});
-  
-  writeToScreen(screen, x + scoreText.length + 10, y + 2, `Crystals: ${druid.crystals}`, {type: 'TOP_BAR_CLICK'});
+  writeToScreen(
+      screen, x + scoreText.length + 3, y + 2, '+++',
+      {type: 'INCREASE_THEORETICAL_DAYS'});
+
+  writeToScreen(
+      screen, x + scoreText.length + 10, y + 2, `Crystals: ${druid.crystals}`,
+      {type: 'TOP_BAR_CLICK'});
 }
 
 export function displayVillageInfo(druid, village, screen, x = 0, y = 0) {
@@ -73,16 +77,23 @@ export function displayOrgan(druid, organ, screen, x = 0, y = 0) {
   diseased = organ.justSpreaded ? '[S]' : diseased;
   const hp_s = zfill(organ.hp);
   const decrease_s = organ.decrease !== 0 ? organ.decrease : ' ';
-  const status = `${strName} ${diseased} ${hp_s} / 10 ${decrease_s}`;
+  const status =
+      `${strName} ${diseased} ${hp_s} / ${organ.maxHp} ${decrease_s}`;
   return status;
 }
 
 export function displayPatients(druid, screen, x = 0, y = 0) {
   const village = druid.currentVillage();
+  if (village === undefined) {
+    writeToScreen(screen, x, y, 'You are in the wilderness.');
+    return;
+  }
+
   y = displayVillageInfo(druid, village, screen, x, y)
 
   const colSize = 30;
-  writeToScreen(screen, x, y, '='.repeat(colSize));
+  writeToScreen(screen, x, y, '='.repeat(colSize/2), {type: 'PATIENT_LFT'});
+  writeToScreen(screen, x+colSize/2, y, '='.repeat(colSize/2), {type: 'PATIENT_RGT'});
   y += 1;
 
   const lft = druid.windowP > 0 ? '<' : ' ';
@@ -98,7 +109,8 @@ export function displayPatients(druid, screen, x = 0, y = 0) {
       paddingRgt + `${rgt}`, {type: 'PATIENT_RGT'});
 
   y += 1;
-  writeToScreen(screen, x, y, '='.repeat(30));
+  writeToScreen(screen, x, y, '='.repeat(colSize/2), {type: 'PATIENT_LFT'});
+  writeToScreen(screen, x+colSize/2, y, '='.repeat(colSize/2), {type: 'PATIENT_RGT'});
   y += 1;
 
   if (village.patients.length <= druid.windowP) {
@@ -233,6 +245,11 @@ export function displayInventory(
   const total = zfill(
       Object.values(druid.herbGathering.inventory).reduce((a, b) => a + b, 0));
 
+  let weights = undefined;
+  if (environment !== undefined) {
+    weights = environment.getWeightsAsProbabilityMap();
+  }
+
   for (const [herb, quantity] of Object.entries(
            druid.herbGathering.inventory)) {
     if (environment !== undefined) {
@@ -250,7 +267,10 @@ export function displayInventory(
         herbMap[herb].known ? herbMap[herb].effectDescription : '???';
 
     // const env = (all) ? getEnv(herb) : '';
-    const env = druid.herbGathering.isCloseToDeterioration(herb) ? '~' : ' ';
+    let env = druid.herbGathering.isCloseToDeterioration(herb) ? '~' : ' ';
+    if (environment !== undefined) {
+      env = weights[herb].toFixed(2).toString().padEnd(4);
+    }
 
     let selected = ' ';
     if (druid.selectedHerbs.includes(herb)) {
@@ -266,7 +286,7 @@ export function displayInventory(
     } else if (all) {
       effect = { type: 'DISCARD_INGREDIENT', herb: herb }
     } else if (environment !== undefined) {
-      effect = { type: 'GATHER', pos: environmentPos }
+      effect = {}
     }
 
     writeToScreen(screen, x, y, inventoryLine, effect);
@@ -284,19 +304,19 @@ export function displayInventory(
       Object.keys(druid.herbGathering.availableHerbs).map(k => [k, 0]));
 }
 
-export function displayEnvironment(druid, screen, x = 0, y = 0) {
-  environments.forEach((environment, i) => {
-    const environmentLine =
-        `${environment.name} ${environment.sumHerbChances().toFixed(2)}`;
-    writeToScreen(
-        screen, x, y + i * 7, environmentLine, {type: 'GATHER', pos: i});
+export function displayEnvironment(
+    environment, i, druid, screen, x = 0, y = 0) {
+  const environmentLine =
+      `${environment.name} ${environment.sumHerbChances().toFixed(2)}`;
+  writeToScreen(screen, x, y + i * 7, environmentLine);
 
-    displayInventory(
-        druid, screen, x, y + i * 7 + 1, false, false, environment, i);
-    // let herbs = `${environment.getKnownHerbs1()}`;
-    // writeToScreen(screen, x, y + i * 4 + 1, herbs, {type: 'GATHER', pos: i});
-    // herbs = `${environment.getKnownHerbs2()}`;
-    // writeToScreen(screen, x, y + i * 4 + 2, herbs, {type: 'GATHER', pos: i});
+  displayInventory(
+      druid, screen, x, y + i * 7 + 1, false, false, environment, i);
+}
+
+export function displayEnvironments(druid, screen, x = 0, y = 0) {
+  environments.forEach((environment, i) => {
+    displayEnvironment(environment, i, druid, screen, x, y);
   });
 }
 
@@ -358,4 +378,65 @@ export function displayVillageLog(druid, screen, x = 0, y = 0) {
 
 export function displayMessages(druid, screen, x = 0, y = 0) {
   displayLog(druid, screen, x, y, druid.msg);
+}
+
+export function displayMap(druid, screen, x = 0, y = 0) {
+  const environmentSymbols = {
+    'Forest': '!',    // Trees for Forest
+    'Swamp': '~',     // Water for Swamp
+    'Mountain': '^',  // Mountain for Mountain
+    'Lake': '-',      // Water for Lake
+  };
+
+  const grid = druid.map.grid;
+  const druidX = druid.map.druidLocation.x;
+  const druidY = druid.map.druidLocation.y;
+
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      const env = grid[i][j][0];
+      let envSymbol = environmentSymbols[env.name];
+      const village = grid[i][j][1];
+      const druidHere = (i === druidX && j === druidY);
+      // if (village !== undefined) envSymbol = ".";
+
+      writeToScreen(screen, x + j * 7, y + i * 4, `+------+`);
+
+      for (let k = 0; k < 3; k++) {
+        let content = `${envSymbol}`.repeat(6);
+        let row = `|${content}|`;
+
+        writeToScreen(
+            screen, x + j * 7, y + i * 4 + k + 1, row,
+            {type: 'MOVE_DRUID', to: {x: i, y: j}});
+      }
+
+      let xVillage = 0;
+      let yVillage = 0;
+      if (village !== undefined) {
+        xVillage = village.displayLoc.x;
+        yVillage = village.displayLoc.y;
+        writeToScreen(
+            screen, x + j * 7 + village.displayLoc.x + 1,
+            y + i * 4 + 1 + village.displayLoc.y, 'V');
+      }
+
+      if (druidHere) {
+        let xDruid = Math.floor(Math.random() * 6);
+        let yDruid = Math.floor(Math.random() * 3);
+        do {
+          xDruid = Math.floor(Math.random() * 6);
+          yDruid = Math.floor(Math.random() * 3);
+        } while (xDruid === xVillage && yDruid === yVillage);
+        writeToScreen(
+            screen, x + j * 7 + xDruid + 1, y + i * 4 + 1 + yDruid, '@');
+      }
+
+      // Last row of the 6x6 square (bottom border)
+      writeToScreen(screen, x + j * 7, y + i * 4 + 4, `+------+`);
+    }
+  }
+
+  displayEnvironment(
+      druid.map.getCurrentEnvironment(), 0, druid, screen, x, y + 20);
 }

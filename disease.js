@@ -32,6 +32,15 @@ export class Disease {
     this.affectedOrgans =
         this.patient.organs.filter(o => o.name === diseaseType.initialOrgan);
     this.affectedOrgans.forEach(organ => organ.diseased = true);
+    const otherOrgans = this.patient.organs.filter(o => o.name !== diseaseType.initialOrgan && !o.diseased);
+
+    if (otherOrgans.length > 0) {
+        const randomIndex = Math.floor(Math.random() * otherOrgans.length);
+        const randomOrgan = otherOrgans[randomIndex];
+    
+        randomOrgan.diseased = true;
+        this.affectedOrgans.push(randomOrgan);
+    }
   }
 
   progress() {

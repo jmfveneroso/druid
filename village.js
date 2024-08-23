@@ -74,7 +74,7 @@ export class Village {
       this.addPatient();
     }
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 10 - initialPatientCount; i++) {
       const name = this.generateRandomName();
       this.villagers.push(new Patient(name));
       this.patientCounter += 1;
@@ -103,7 +103,7 @@ export class Village {
   }
 
   initializeMiasmaPatches() {
-    const numPatches = Math.floor(Math.random() * 2) + 2;
+    const numPatches = Math.floor(Math.random()) + 2;
     for (let i = 0; i < numPatches; i++) {
       const location =
           ['North Field', 'South Lake', 'East Woods',
@@ -120,6 +120,9 @@ export class Village {
 
   calculateSpreadChance() {
     const spreadChance = this.baseSpreadChance * this.calculateMiasmaStrength();
+    if (spreadChance < 0.0001) {
+      return 0;
+    }
     return spreadChance + BASE_SPREAD_CHANCE;
   }
 

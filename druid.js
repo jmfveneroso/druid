@@ -3,6 +3,7 @@ import {availableHerbs, herbMap, updateHerbMap} from './herbs.js';
 import {Patient} from './patient.js';
 import {Potion} from './potion.js';
 import {villages} from './village.js';
+import {Map} from './map.js';
 
 const MOURNING_DURATION = 4;
 const RUNE_DISCOVERY_CHANCE = 0.5;
@@ -38,7 +39,7 @@ export class Druid {
     this.selectedVillage = 0;
     this.selectedHerbs = [];  // Herbs selected for combination
     this.usedPotions = [];
-    this.crystals = 1;
+    this.crystals = 0;
     this.combinationMap = {};
     this.initCombinationMap();
     this.mainMenuOptions = {
@@ -47,10 +48,12 @@ export class Druid {
       '(G)ather': 'CHOOSE_ENVIRONMENT',
       '(T)ravel': 'TRAVELLING',
       '(W)ait': 'WAIT',
-      '(L)og': 'MSG',
+      '(M)ap': 'MAP',
       // "druid": "DRUID",
     };
     this.logStartAt = 0;
+    this.map = new Map();
+    this.lastEnvironment = undefined;
 
     // Druid leveling system
     this.level = 1;
@@ -93,12 +96,14 @@ export class Druid {
     this.writeMsg('');
     for (let h of gatheredHerbs) {
       let total = this.herbGathering.inventory[h];
+      let desc = herbMap[h].effectDescription;
       this.writeMsg(`+1 ${h} (total: ${total})`);
+      this.writeMsg(`  -> ${desc}`);
     }
     this.writeMsg('');
     this.writeMsg(`Total ingredients: ${totalHerbs}`);
     this.setState('MSG');
-    this.setNextState('CHOOSE_ENVIRONMENT');
+    this.setNextState('MAP');
   }
 
   travel(pos) {
@@ -263,7 +268,7 @@ export class Druid {
   }
 
   currentVillage() {
-    return villages[this.selectedVillage];
+    return this.map.getCurrentVillage();
   }
 
   combinePotion() {
@@ -436,5 +441,24 @@ export class Druid {
     this.theoreticalDays += increase;
     this.theoreticalDays = Math.max(1, this.theoreticalDays);
     this.theoreticalDays = Math.min(this.theoreticalDays, this.days);
+  }
+  
+  move (x, y) {
+    if (this.map.moveDruid(x, y)) {
+      let env = this.map.getCurrentEnvironment();
+      if (this.lastEnvironment !== env) {
+        env.resetWeights();
+      } else {
+        env.boostWeights();
+      }
+      this.gatherIngredients(env);
+      this.lastEnvironment = env;
+
+      if (this.map.isEnvironment()) {
+        this.setNextState('MAP');
+      } else {
+        this.setNextState('VILLAGE');
+      }
+    }
   }
 }

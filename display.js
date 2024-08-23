@@ -52,7 +52,7 @@ export function printScreen(druid, isBrowser, handleClick) {
   let top = 5;
   switch (druid.gameState) {
     case 'CHOOSE_ENVIRONMENT':
-      views.displayEnvironment(druid, screen, lft, top);
+      views.displayEnvironments(druid, screen, lft, top);
       break;
     case 'TRAVELLING':
       views.displayVillages(druid, screen, lft, top);
@@ -80,6 +80,10 @@ export function printScreen(druid, isBrowser, handleClick) {
       break;
     case 'MSG':
       views.displayMessages(druid, screen, lft, top);
+      break;
+    case 'MAP':
+      views.displayMap(druid, screen, lft, top);
+      break;
     default:
       break;
   }

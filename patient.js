@@ -6,6 +6,7 @@ class Organ {
     this.name = name;
     this.system = system;
     this.hp = 10;
+    this.maxHp = 10;
     this.critical = false;
     this.diseased = false;
     this.patient = patient;
@@ -28,24 +29,26 @@ class Organ {
     }
   }
 
-  treat(healing, canHealCritical = false) {
+  treat(healing, canHealCritical = false, canCure = true) {
     healing *= this.patient.getMultiplier();
 
     if (!this.critical) {
       this.hp += healing;
       this.patient.logMsg(`${this.name} ${healing} HP (now ${this.hp})`);
-      if (this.hp >= 10) {
-        this.hp = 10;
-        this.diseased = false;
-        this.patient.logMsg(`${this.name} is no longer diseased`);
+      if (this.hp >= this.maxHp) {
+        this.hp = this.maxHp;
+        if (canCure) {
+          this.diseased = false;
+          this.patient.logMsg(`${this.name} is no longer diseased`);
+        }
       }
     } else if (canHealCritical) {
       this.hp += healing;
       this.patient.logMsg(`${this.name} ${healing} HP (now ${this.hp})`);
       this.patient.logMsg(`${this.name} is no longer critical`);
       this.critical = false;
-      if (this.hp >= 10) {
-        this.hp = 10;
+      if (this.hp >= this.maxHp) {
+        this.hp = this.maxHp;
         this.diseased = false;
         this.patient.logMsg(`${this.name} is no longer diseased`);
       }
@@ -63,6 +66,7 @@ export class Patient {
       new Organ('Kidneys', 'Urinary', this),
       new Organ('Brain', 'Nervous', this),
     ];
+
     this.dead = false;
     this.cured = false;
     this.dragonscaleActive = false;  // Flag for Dragonscale Fungus effect
@@ -75,6 +79,8 @@ export class Patient {
     this.organStates = [];
     this.lastCheckup = 0;
     this.shouldClearOrganInfo = false;
+    
+    this.personalize();
 
     // Choose a random disease from the disease registry
     const randomDiseaseType =
@@ -104,25 +110,29 @@ export class Patient {
     }
   }
 
+  applyFinalEffect(druid, drug) {
+    this.logMsg(`${drug.name} applied its effect`);
+    drug['finalEffect'](this);
+    this.drugsTaken = this.drugsTaken.filter(d => d !== drug);
+
+    if (!druid.knowsHerbEffect(drug.name)) {
+      this.powerups.push([
+        `${drug.name} effect`,
+        () => {
+          druid.clearMsgs();
+          druid.discoverHerbEffect(drug.name);
+          druid.setState('MSG');
+        }
+      ]);
+    }
+  }
+
   applyDrugs(druid, days) {
     this.drugsTaken.forEach(drug => {
       drug.dailyEffect(this);
       drug.daysRemaining -= 1;
       if (drug.daysRemaining <= 0) {
-        this.logMsg(`${drug.name} applied its effect`);
-        drug['finalEffect'](this);
-        this.drugsTaken = this.drugsTaken.filter(d => d !== drug);
-
-        if (!druid.knowsHerbEffect(drug.name)) {
-          this.powerups.push([
-            `${drug.name} effect`,
-            () => {
-              druid.clearMsgs();
-              druid.discoverHerbEffect(drug.name);
-              druid.setState('MSG');
-            }
-          ]);
-        }
+        this.applyFinalEffect(druid, drug);
       }
     });
 
@@ -134,7 +144,7 @@ export class Patient {
   progress(druid, days) {
     this.days = days;
     this.pushOrganState();
-    
+
     if (this.shouldClearOrganInfo) {
       for (let i = 0; i < this.organs.length; i++) {
         this.organs[i].decrease = 0;
@@ -162,6 +172,11 @@ export class Patient {
         'dailyEffect': () => {},
         'daysRemaining': herbMap[herbName].duration,
       });
+
+      let drug = this.drugsTaken[this.drugsTaken.length - 1];
+      if (drug.daysRemaining === 0) {
+        this.applyFinalEffect(druid, drug);
+      }
 
       if (!isDragonscale && this.dragonscaleActive) {
         this.dragonscaleActive = false;
@@ -211,14 +226,14 @@ export class Patient {
         'daysRemaining': this.drugsTaken[i].daysRemaining,
       });
     }
-    
+
     this.organStates[this.days] = [newOrgans, newDrugsTaken];
   }
 
   logMsg(msg) {
     this.log.push(`${this.days}: ${msg}`);
   }
-  
+
   getOrgans(theoreticalDays) {
     if (this.organStates[theoreticalDays] !== undefined) {
       return this.organStates[theoreticalDays];
@@ -229,5 +244,37 @@ export class Patient {
 
   clearOrganInfo() {
     this.shouldClearOrganInfo = true;
+  }
+  
+  personalize() {
+    function getRandomInt(max) {
+      return Math.floor(Math.random() * max);
+    }
+  
+    let firstIncreaseIndex = getRandomInt(this.organs.length);
+    let secondIncreaseIndex;
+    do {
+      secondIncreaseIndex = getRandomInt(this.organs.length);
+    } while (secondIncreaseIndex === firstIncreaseIndex);
+  
+    this.organs[firstIncreaseIndex].maxHp += 2;
+    this.organs[secondIncreaseIndex].maxHp += 2;
+    this.organs[firstIncreaseIndex].hp += 2;
+    this.organs[secondIncreaseIndex].hp += 2;
+  
+    let firstDecreaseIndex;
+    do {
+      firstDecreaseIndex = getRandomInt(this.organs.length);
+    } while (firstDecreaseIndex === firstIncreaseIndex || firstDecreaseIndex === secondIncreaseIndex);
+  
+    let secondDecreaseIndex;
+    do {
+      secondDecreaseIndex = getRandomInt(this.organs.length);
+    } while (secondDecreaseIndex === firstIncreaseIndex || secondDecreaseIndex === secondIncreaseIndex || secondDecreaseIndex === firstDecreaseIndex);
+  
+    this.organs[firstDecreaseIndex].maxHp -= 2;
+    this.organs[secondDecreaseIndex].maxHp -= 2;
+    this.organs[firstDecreaseIndex].hp -= 2;
+    this.organs[secondDecreaseIndex].hp -= 2;
   }
 }

@@ -23,9 +23,11 @@ function handleClick(druid, data) {
         break;
       case "PATIENT_LOG":
         druid.setState('PATIENT_LOG');
+        druid.setNextState('VILLAGE');
         break;
       case "VILLAGE_LOG":
         druid.setState('VILLAGE_LOG');
+        druid.setNextState('VILLAGE');
         break;
       case "TREAT_PATIENT":
         druid.treatPatient(druid.cursorP, data.herb);
@@ -77,6 +79,9 @@ function handleClick(druid, data) {
       case "INCREASE_THEORETICAL_DAYS":
         druid.increaseTheoreticalDays(1);
         break;
+      case "MOVE_DRUID":
+        druid.move(data.to.x, data.to.y);
+        break;
       case "MSG":
         break;
     }
@@ -85,7 +90,11 @@ function handleClick(druid, data) {
   }
 
   if (druid.nextState === undefined) {
-    druid.setState('VILLAGE');
+    if (druid.gameState === 'MAP') {
+      druid.setState('VILLAGE');
+    } else {
+      druid.setState('MAP');
+    }
   } else {
     druid.setState(druid.nextState);
     druid.nextState = undefined;

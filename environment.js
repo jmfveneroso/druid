@@ -6,33 +6,29 @@ class Environment {
     this.herbs = herbs;
     this.known = new Array(herbs.length).fill(false);
     this.weights = herbs.map(h => herbMap[h].chance);
+    this.boostedWeights = herbs.map(h => herbMap[h].chance);
+  }
+
+  weightedRandomSelect(weights) {
+    const totalWeight = weights.reduce((acc, weight) => acc + weight, 0);
+
+    let randomNum = Math.random() * totalWeight;
+
+    for (let i = 0; i < weights.length; i++) {
+      randomNum -= weights[i];
+      if (randomNum < 0) {
+        return i;
+      }
+    }
   }
 
   gatherHerbs(numHerbs = 3) {
-    // Simulate random.choices in Python using weighted random selection
-    const totalWeight = this.weights.reduce((acc, weight) => acc + weight, 0);
-    const weightedHerbs = this.herbs.map(
-        (herb, index) => ({herb, weight: this.weights[index] / totalWeight}));
-
     const selectedHerbs = [];
     for (let i = 0; i < numHerbs; i++) {
-      let rand = Math.random();
-      for (const {herb, weight} of weightedHerbs) {
-        if (rand < weight) {
-          selectedHerbs.push(herb);
-
-          // Flip the corresponding known flag to true
-          const herbIndex = this.herbs.indexOf(herb);
-          if (herbIndex !== -1) {
-            this.known[herbIndex] = true;
-          }
-
-          break;
-        }
-        rand -= weight;
-      }
+      let index = this.weightedRandomSelect(this.boostedWeights);
+      selectedHerbs.push(this.herbs[index]);
+      this.known[index] = true;
     }
-
     return selectedHerbs;
   }
 
@@ -65,6 +61,33 @@ class Environment {
   hasHerb(herb) {
     const herbIndex = this.herbs.indexOf(herb);
     return herbIndex !== -1 && this.known[herbIndex];
+  }
+
+  resetWeights() {
+    this.boostedWeights = [...this.weights];
+  }
+
+  boostWeights(levelingFactor = 0.2) {
+    const totalWeight = this.boostedWeights.reduce((acc, weight) => acc + weight, 0);
+
+    this.boostedWeights = this.boostedWeights.map(weight => {
+      const equalizedWeight = totalWeight / this.weights.length;
+      return weight + levelingFactor * (equalizedWeight - weight);
+    })
+  }
+
+  getWeightsAsProbabilityMap() {
+    console.log(this.herbs);
+    console.log(this.weights);
+    console.log(this.boostedWeights);
+    const totalWeight = this.boostedWeights.reduce((acc, weight) => acc + weight, 0);
+    const probabilityMap = {};
+
+    this.herbs.forEach((herb, index) => {
+      probabilityMap[herb] = this.boostedWeights[index] / totalWeight;
+    });
+
+    return probabilityMap;
   }
 }
 
@@ -111,17 +134,6 @@ function assignHerbsToEnvironments(environments, availableHerbs, herbMap) {
 
       for (let i = 0; i < shuffledHerbs.length; i++) {
         const herb = shuffledHerbs[i];
-        // const herbChance = herbMap[herb].chance;
-
-        // // Select herb if it keeps the total chance sum <= 1 or is the last
-        // herb
-        // // to be selected
-        // if (sumChance + herbChance <= 1 || selectedHerbs.length === 4) {
-        //   if (!bestHerb || herbChance > bestHerb.chance) {
-        //     bestHerb = herb;
-        //     bestHerbIndex = i;
-        //   }
-        // }
         bestHerb = herb;
         bestHerbIndex = i;
         break;
@@ -137,6 +149,7 @@ function assignHerbsToEnvironments(environments, availableHerbs, herbMap) {
     // Assign the selected herbs to the environment
     env.herbs = selectedHerbs;
     env.weights = selectedHerbs.map(herb => herbMap[herb].chance);
+    env.boostedWeights = selectedHerbs.map(herb => herbMap[herb].chance);
   });
 }
 
