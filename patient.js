@@ -69,6 +69,7 @@ export class Patient {
 
     this.dead = false;
     this.cured = false;
+    this.infected = false;
     this.dragonscaleActive = false;  // Flag for Dragonscale Fungus effect
     this.silvervineActive = false;   // Flag for Silvervine effect
     this.silvervineCounter = 0;
@@ -79,9 +80,12 @@ export class Patient {
     this.organStates = [];
     this.lastCheckup = 0;
     this.shouldClearOrganInfo = false;
+    this.houseLoc = [-1, -1];
     
     this.personalize();
+  }
 
+  infect() {
     // Choose a random disease from the disease registry
     const randomDiseaseType =
         diseaseRegistry[Math.floor(Math.random() * diseaseRegistry.length)];
@@ -90,6 +94,7 @@ export class Patient {
     this.disease = new Disease(randomDiseaseType, this);
     this.logMsg(`${this.id} History`);
     this.logMsg(`Contracted ${this.disease.diseaseType.name}`);
+    this.infected = true;
   }
 
   getMultiplier() {
@@ -121,6 +126,7 @@ export class Patient {
         () => {
           druid.clearMsgs();
           druid.discoverHerbEffect(drug.name);
+          druid.nextState = druid.gameState;
           druid.setState('MSG');
         }
       ]);
@@ -193,7 +199,15 @@ export class Patient {
   }
 
   isCured() {
-    return this.organs.filter(organ => organ.diseased).length === 0;
+    return this.organs.filter(organ => organ.diseased).length === 0 && this.infected;
+  }
+
+  isSick() {
+    return this.infected;
+  }
+
+  isCritical() {
+    return this.organs.filter(organ => organ.critical).length >= 1;
   }
 
   getOrgan(organName) {
@@ -211,6 +225,7 @@ export class Patient {
 
     for (let i = 0; i < this.organs.length; i++) {
       newOrgans[i].hp = this.organs[i].hp;
+      newOrgans[i].maxHp = this.organs[i].maxHp;
       newOrgans[i].critical = this.organs[i].critical;
       newOrgans[i].diseased = this.organs[i].diseased;
       newOrgans[i].decrease = this.organs[i].decrease;

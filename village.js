@@ -25,50 +25,129 @@ const suffixes = [
   'meadow', 'ridge', 'grove', 'stone', 'fall',   'reach'
 ];
 
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];  // Swap elements
+  }
+  return array;
+}
+
 export class VillageMap {
-  constructor(width = 42, height = 20, numVillagers = 10) {
+  constructor(village, width = 42, height = 20) {
+    this.village = village;
     this.width = width;
     this.height = height;
-    this.grid = Array.from({ length: height }, () => Array(width).fill(' '));
-    this.numVillagers = Math.min(numVillagers, 10);
+    this.grid = Array.from({length: height}, () => Array(width).fill(' '));
+    this.gridFn =
+        Array.from({length: height}, () => Array(width).fill(undefined));
+    this.generateMap();
   }
 
   placeCentralSquare() {
-    const x = Math.floor(this.width / 2) - 2;
-    const y = Math.floor(this.height / 2) - 2;
-    this.drawRect(x, y, 4, 4, 'S');
+    return this.placeStructureBounded('░', 8, 4, 10, 5, 30, 15);
   }
 
-  placeTemple() {
-    this.placeStructure('T', 4, 3);
+  placeSquareBuilding(char, width, height, x, y, direction) {
+    let [offsetX, offsetY, maxX, maxY] = [0, 0, 0, 0];
+    if (direction === 0) {
+      [offsetX, offsetY, maxX, maxY] = [0, -height, 8, height];
+    } else if (direction === 1) {
+      [offsetX, offsetY, maxX, maxY] = [-width, 0, width, 4];
+    } else if (direction === 2) {
+      [offsetX, offsetY, maxX, maxY] = [0, 4, 8, height];
+    } else if (direction === 3) {
+      [offsetX, offsetY, maxX, maxY] = [8, 0, width, 4];
+    }
+    x += offsetX;
+    y += offsetY;
+    this.placeStructureBounded(char, width, height, x, y, x + maxX, y + maxY);
   }
 
-  placeGraveyard() {
-    this.placeStructure('G', 5, 3);
+  placeTemple(x, y, direction) {
+    this.placeSquareBuilding('ฐ', 4, 3, x, y, direction);
   }
 
-  placeAlchemyShop() {
-    this.placeStructure('A', 4, 2);
+  placeGraveyard(x, y, direction) {
+    this.placeStructureStrict('±', 5, 3);
+  }
+
+  placeAlchemyShop(x, y, direction) {
+    this.placeSquareBuilding('╫', 4, 2, x, y, direction);
   }
 
   placeFields() {
-    const numFields = Math.floor(Math.random() * 3) + 1;
+    const numFields = Math.floor(Math.random() * 2) + 1;
     for (let i = 0; i < numFields; i++) {
-      this.placeStructure('F', 6, 4);
+      const w = Math.floor(Math.random() * 4) + 5;
+      const h = Math.floor(Math.random() * 3) + 4;
+      this.placeStructureStrict('"', w, h, true);
     }
   }
 
   placeHouses() {
-    for (let i = 0; i < this.numVillagers; i++) {
-      const isSick = Math.random() < 0.3;  // 30% chance of being sick
-      this.placeStructure(isSick ? 'H' : 'h', 2, 2);
+    for (let i = 0; i < this.village.villagers.length; i++) {
+      let villager = this.village.villagers[i];
+      let [x, y] = this.getStructurePlacement(3, 2);
+
+      villager.houseLoc = [x, y];
+      this.drawRect(
+          x, y, 3, 2, '█', {type: 'SELECT_VILLAGER', villager: villager});
+    }
+  }
+
+  clearMiasmaPatches() {
+    for (let i = 0; i < this.height; i++) {
+      for (let j = 0; j < this.width; j++) {
+        if (this.grid[i][j] == "⊙" || this.grid[i][j] == "§") {
+          this.grid[i][j] = " ";
+          this.gridFn[i][j] = undefined;
+        }
+      }
     }
   }
 
   placeMiasmaPatches(miasmaPatches) {
-    miasmaPatches.forEach(patch => {
-      this.placeStructure('M', patch.strength + 1, patch.strength + 1);
+    this.village.miasmaPatches.forEach(patch => {
+      let str = Math.ceil(patch.strength/2) + 1;
+      let [x, y] = this.getStructurePlacement(str, str);
+
+      for (let j = y; j < y + str; j++) {
+        for (let i = x; i < x + str; i++) {
+          let print = (i == x + 1 || j == y + 1) || Math.random() < 0.3;
+          if (print) {
+            let symbol = '⊙';
+            if (Math.random() < 0.3) {
+              symbol = '§';
+            }
+            this.grid[j][i] = symbol;
+            this.gridFn[j][i] = {type: 'MIASMA_CLICK'};
+          }
+        }
+      }
     });
+  }
+
+  placeStructureBounded(symbol, width, height, x, y, maxX, maxY) {
+    let newX, newY;
+    for (let i = 0; i < 100; i++) {
+      newX = Math.floor(Math.random() * (maxX - x - width));
+      newY = Math.floor(Math.random() * (maxY - y - height));
+      if (this.canPlaceStructure(x + newX, y + newY, width, height)) {
+        this.drawRect(x + newX, y + newY, width, height, symbol);
+        break;
+      }
+    }
+    return [x + newX, y + newY];
+  }
+
+  getStructurePlacement(width, height) {
+    let x, y;
+    do {
+      x = Math.floor(Math.random() * (this.width - width));
+      y = Math.floor(Math.random() * (this.height - height));
+    } while (!this.canPlaceStructureStrict(x, y, width, height));
+    return [x, y];
   }
 
   placeStructure(symbol, width, height) {
@@ -80,7 +159,20 @@ export class VillageMap {
     this.drawRect(x, y, width, height, symbol);
   }
 
+  placeStructureStrict(symbol, width, height) {
+    let x, y;
+    do {
+      x = Math.floor(Math.random() * (this.width - width));
+      y = Math.floor(Math.random() * (this.height - height));
+    } while (!this.canPlaceStructureStrict(x, y, width, height));
+    this.drawRect(x, y, width, height, symbol);
+  }
+
   canPlaceStructure(x, y, width, height) {
+    if (x < 0 || y < 0 || x + width > this.width || y + height > this.height) {
+      return false;
+    }
+
     for (let i = y; i < y + height; i++) {
       for (let j = x; j < x + width; j++) {
         if (this.grid[i][j] !== ' ') return false;
@@ -89,22 +181,119 @@ export class VillageMap {
     return true;
   }
 
-  drawRect(x, y, width, height, symbol) {
+  canPlaceStructureStrict(x, y, width, height) {
+    if (x < 1 || y < 1 || x + width >= this.width ||
+        y + height >= this.height) {
+      return false;
+    }
+
+    for (let i = y; i < y + height; i++) {
+      for (let j = x; j < x + width; j++) {
+        for (let i2 = -1; i2 < 2; i2++) {
+          for (let j2 = -1; j2 < 2; j2++) {
+            if (this.grid[i + i2][j + j2] !== ' ') return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  drawRect(x, y, width, height, symbol, fn = undefined) {
     for (let i = y; i < y + height; i++) {
       for (let j = x; j < x + width; j++) {
         this.grid[i][j] = symbol;
+        if (fn !== undefined) {
+          this.gridFn[i][j] = fn;
+        }
+      }
+    }
+  }
+
+  getOccupiedSquare() {
+    let x, y;
+    do {
+      x = Math.floor(Math.random() * this.width);
+      y = Math.floor(Math.random() * this.height);
+    } while (this.grid[y][x] === ' ');
+    return [x, y];
+  }
+
+  addRoads() {
+    for (let k = 0; k < 15; k++) {
+      let [x1, y1] = this.getOccupiedSquare();
+
+      let [x2, y2] = [x1, y1];
+      do {
+        [x2, y2] = this.getOccupiedSquare();
+      } while (x1 == x2 && y1 == y2);
+
+      let i = x1
+      let j = y1
+      let iInc = x2 > x1 ? 1 : -1;
+      let jInc = y2 > y1 ? 1 : -1;
+      for (; i != x2; i += iInc) {
+        if (this.grid[j][i] == ' ') {
+          if (Math.random() < 0.4) {
+            let symbol = '.';
+            if (Math.random() < 0.2) {
+              symbol = '∙';
+            }
+            this.grid[j][i] = symbol;
+          }
+        }
+      }
+
+      for (; j != y2; j += jInc) {
+        if (this.grid[j][i] == ' ') {
+          if (Math.random() < 0.4) {
+            let symbol = '.';
+            if (Math.random() < 0.2) {
+              symbol = '∙';
+            }
+            this.grid[j][i] = symbol;
+          }
+        }
       }
     }
   }
 
   generateMap(miasmaPatches) {
-    this.placeCentralSquare();
-    this.placeTemple();
+    let [x, y] = this.placeCentralSquare();
+
+    let arr = [0, 1, 2, 3];
+    arr = shuffleArray(arr);
+
+    this.placeTemple(x, y, arr[0]);
+    this.placeAlchemyShop(x, y, arr[1]);
+
     this.placeGraveyard();
-    this.placeAlchemyShop();
     this.placeFields();
     this.placeHouses();
+    // this.addRoads();
     this.placeMiasmaPatches(miasmaPatches);
+    this.updateMap();
+  }
+
+  updateMap() {
+    for (let i = 0; i < this.village.villagers.length; i++) {
+      let villager = this.village.villagers[i];
+      let [x, y] = villager.houseLoc;
+
+      for (let j = 0; j < 3; j++) {
+        if (villager.isDead()) {
+          this.grid[y][x+j] = "±";
+        } else if (villager.isCritical()) {
+          this.grid[y][x+j] = "*";
+        } else if (villager.isSick()) {
+          this.grid[y][x+j] = "≠";
+        } else {
+          this.grid[y][x+j] = "█";
+        }
+      }
+    }
+    this.clearMiasmaPatches();
+    this.placeMiasmaPatches(this.village.miasmaPatches);
   }
 }
 
@@ -121,7 +310,8 @@ class MiasmaPatch {
   increaseStrength() {
     if (this.strength < 5) {
       this.strength += 1;
-      this.village.logMsg(`The miasma in ${this.location} increased to ${this.strength}.`);
+      this.village.logMsg(
+          `The miasma in ${this.location} increased to ${this.strength}.`);
     }
     this.counter = 30;
   }
@@ -129,7 +319,8 @@ class MiasmaPatch {
   decreaseStrength() {
     if (this.strength > 0) {
       this.strength -= 1;
-      this.village.logMsg(`The miasma in ${this.location} decreased to ${this.strength}.`);
+      this.village.logMsg(
+          `The miasma in ${this.location} decreased to ${this.strength}.`);
     }
 
     if (this.strength === 0) {
@@ -143,9 +334,7 @@ class MiasmaPatch {
 export class Village {
   constructor(initialPatientCount = 3) {
     this.name = this.generateRandomVillageName();
-    this.patients = [];
     this.villagers = [];
-    this.patientCounter = 0;
     this.deadCount = 0;
     this.curedCount = 0;
     this.baseSpreadChance = 0.01;
@@ -153,26 +342,27 @@ export class Village {
     this.log = [];
     this.days = 0;
 
+    for (let i = 0; i < 10 - initialPatientCount; i++) {
+      const name = this.generateRandomName();
+      this.villagers.push(new Patient(name));
+    }
+
     for (let i = 0; i < initialPatientCount; i++) {
       this.addPatient();
     }
 
-    for (let i = 0; i < 10 - initialPatientCount; i++) {
-      const name = this.generateRandomName();
-      this.villagers.push(new Patient(name));
-      this.patientCounter += 1;
-    }
-
     this.initializeMiasmaPatches();
-    this.logMsg(`${this.name} has ${this.patients.length} sick villagers.`);
+    this.logMsg(`${this.name} has ${this.getSick()} sick villagers.`);
 
-    this.villageMap = new VillageMap();
+    this.villageMap = new VillageMap(this);
   }
 
   addPatient() {
-    const name = this.generateRandomName();
-    this.patients.push(new Patient(name));
-    this.patientCounter += 1;
+    const newPatient =
+        this.villagers[Math.floor(Math.random() * this.villagers.length)];
+    newPatient.infect();
+    let numSick = this.getSick();
+    this.logMsg(`${newPatient.id} got sick. Num sick: ${numSick}.`);
   }
 
   generateRandomName() {
@@ -234,13 +424,7 @@ export class Village {
     const spreadChance = this.calculateSpreadChance();
     const shouldSpread = Math.random() < spreadChance;
     if (shouldSpread) {
-      const newPatient =
-          this.villagers[Math.floor(Math.random() * this.villagers.length)];
-      this.patients.push(newPatient);
-      this.villagers =
-          this.villagers.filter(villager => villager !== newPatient);
-      let numSick = this.patients.length;
-      this.logMsg(`${newPatient.id} got sick. Num sick: ${numSick}.`);
+      this.addPatient();
     }
 
     for (let patch of this.miasmaPatches) {
@@ -255,12 +439,20 @@ export class Village {
     this.log.push(`${this.days}: ${msg}`);
   }
 
+  getHealthy() {
+    return this.villagers.filter(p => !p.isSick()).length;
+  }
+
   getSick() {
-    return this.patients.filter(p => !p.dead).length;
+    return this.villagers.filter(p => p.isSick()).length - this.getDead();
   }
 
   getDead() {
-    return this.patients.filter(p => p.dead).length + this.deadCount;
+    return this.villagers.filter(p => p.dead).length;
+  }
+
+  getPatients() {
+    return this.villagers.filter(p => p.isSick());
   }
 }
 

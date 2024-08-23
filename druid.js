@@ -1,9 +1,9 @@
 import {HerbGathering} from './gather.js';
 import {availableHerbs, herbMap, updateHerbMap} from './herbs.js';
+import {Map} from './map.js';
 import {Patient} from './patient.js';
 import {Potion} from './potion.js';
 import {villages} from './village.js';
-import {Map} from './map.js';
 
 const MOURNING_DURATION = 4;
 const RUNE_DISCOVERY_CHANCE = 0.5;
@@ -43,12 +43,9 @@ export class Druid {
     this.combinationMap = {};
     this.initCombinationMap();
     this.mainMenuOptions = {
-      '(V)illage': 'VILLAGE',
       '(I)nventory': 'POTION',
       '(G)ather': 'CHOOSE_ENVIRONMENT',
-      '(T)ravel': 'TRAVELLING',
       '(W)ait': 'WAIT',
-      '(M)ap': 'MAP',
       // "druid": "DRUID",
     };
     this.logStartAt = 0;
@@ -96,7 +93,7 @@ export class Druid {
     this.writeMsg('');
     for (let h of gatheredHerbs) {
       let total = this.herbGathering.inventory[h];
-      let desc = herbMap[h].effectDescription;
+      let desc = herbMap[h].known ? herbMap[h].effectDescription : "???";
       this.writeMsg(`+1 ${h} (total: ${total})`);
       this.writeMsg(`  -> ${desc}`);
     }
@@ -121,7 +118,7 @@ export class Druid {
   }
 
   treatPatient(patientId, herbName) {
-    const patient = this.currentVillage().patients[patientId];
+    const patient = this.currentVillage().getPatients()[patientId];
     patient.treatPatient(herbName, this);
   }
 
@@ -129,8 +126,8 @@ export class Druid {
     villages.forEach(v => v.progress(this));
 
     villages.forEach(v => {
-      v.patients.forEach(patient => {
-        if (!patient.dead && !patient.cured) {
+      v.villagers.forEach(patient => {
+        if (patient.isSick()) {
           patient.progress(this, this.days);
         }
 
@@ -143,7 +140,7 @@ export class Druid {
           patient.powerups.push([
             `Death`,
             () => {
-              v.patients = v.patients.filter(p => p !== patient);
+              // v.villagers = v.villagers.filter(p => p !== patient);
               v.deadCount += 1;
             }
           ]);
@@ -171,11 +168,9 @@ export class Druid {
           this.gainXp(50);  // Example amount of XP gained per cured patient
         }
       });
-
-      v.patients.forEach(patient => {
-        if ((patient.cured || patient.dead) && patient.powerups.length === 0) {
-          v.patients = v.patients.filter(p => p !== patient);
-        }
+    
+      villages.forEach(v => {
+        v.villageMap.updateMap();
       });
     });
 
@@ -192,44 +187,6 @@ export class Druid {
       }
     }
     return true;
-  }
-
-  updateCursorP(newValue) {
-    this.cursorP = Math.max(
-        0, Math.min(newValue, this.currentVillage().patients.length - 1));
-
-    if (this.cursorP >= this.windowP + this.windowPSize) {
-      this.windowP += 1;
-    }
-    if (this.cursorP < this.windowP) {
-      this.windowP -= 1;
-    }
-  }
-
-  updateCursor(newValue) {
-    this.cursor = Math.max(0, Math.min(newValue, 24));
-  }
-
-  updateCursorMain(newValue) {
-    this.cursorMain = Math.max(
-        0, Math.min(newValue, Object.keys(this.mainMenuOptions).length - 1));
-  }
-
-  updateCursorE(newValue) {
-    this.cursorE = Math.max(0, Math.min(newValue, 5));
-  }
-
-  updateCursorVillage(newValue) {
-    this.cursorVillage = Math.max(0, Math.min(newValue, villages.length - 1));
-  }
-
-  updateCursorMiasma(newValue) {
-    this.cursorMiasma = Math.max(
-        0, Math.min(newValue, this.currentVillage().miasmaPatches.length - 1));
-  }
-
-  checkWinCondition() {
-    return false;
   }
 
   setNextState(newState) {
@@ -257,7 +214,7 @@ export class Druid {
         break;
       case 'WAIT':
         this.progressGame();
-        this.setState('VILLAGE');
+        this.setState(this.nextState);
         break;
       default:
         if (['TREATING', 'DISCOVERING', 'SELECT_POTION'].includes(newState)) {
@@ -375,7 +332,6 @@ export class Druid {
     this.generateRunesForHerbs();
     updateHerbMap();
     // this.revealAllRunes();
-    console.log(this.combinationMap);
   }
 
   generateRunesForHerbs() {
@@ -412,7 +368,6 @@ export class Druid {
   moveLog(offset, maxLen) {
     this.logStartAt += offset;
     this.logStartAt = Math.max(0, Math.min(this.logStartAt, maxLen));
-    console.log(offset);
   }
 
   processLogs(logs, maxLen) {
@@ -442,8 +397,8 @@ export class Druid {
     this.theoreticalDays = Math.max(1, this.theoreticalDays);
     this.theoreticalDays = Math.min(this.theoreticalDays, this.days);
   }
-  
-  move (x, y) {
+
+  move(x, y) {
     if (this.map.moveDruid(x, y)) {
       let env = this.map.getCurrentEnvironment();
       if (this.lastEnvironment !== env) {
@@ -451,14 +406,37 @@ export class Druid {
       } else {
         env.boostWeights();
       }
-      this.gatherIngredients(env);
-      this.lastEnvironment = env;
 
-      if (this.map.isEnvironment()) {
-        this.setNextState('MAP');
-      } else {
-        this.setNextState('VILLAGE');
+      this.gatherIngredients(env);
+      this.setNextState('MAP');
+    }
+  }
+
+  enterVillage(village) {
+    this.setState('VILLAGE_MAP');
+  }
+
+  selectVillager(villager) {
+    for (let i = 0; i < this.currentVillage().getPatients().length; i++) {
+      let p = this.currentVillage().getPatients()[i];
+      if (p.id == villager.id) {
+        this.cursorP = i;
+        this.setState('VILLAGE');
+        return;
       }
+    }
+    this.setState('VILLAGE_MAP');
+  }
+
+  updateCursorP(newValue) {
+    this.cursorP = Math.max(
+        0, Math.min(newValue, this.currentVillage().getPatients().length - 1));
+
+    if (this.cursorP >= this.windowP + this.windowPSize) {
+      this.windowP += 1;
+    }
+    if (this.cursorP < this.windowP) {
+      this.windowP -= 1;
     }
   }
 }

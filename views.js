@@ -3,7 +3,7 @@ import {herbMap} from './herbs.js';
 import {villages} from './village.js';
 
 export const SCREEN_WIDTH = 50;
-export const SCREEN_HEIGHT = 50;
+export const SCREEN_HEIGHT = 45;
 
 function zfill(x) {
   return x < 10 ? ' ' + String(x) : String(x);
@@ -18,27 +18,34 @@ function writeToScreen(screen, x, y, text, data = undefined) {
 }
 
 export function displayScore(druid, screen, x = 0, y = 0) {
-  const menuOptions = ['[Vil]', '[Inv]', '[Gat]', '[Tra]', '[Wai]', '[Map]'];
+  const menuOptions = ['[Inv]', '[Gat]', '[Wai]'];
   let menuX = x;
-  menuOptions.forEach((option, index) => {
-    writeToScreen(
-        screen, menuX, y, option, {type: 'MAIN_MENU_CLICK', pos: index});
-    menuX += option.length;
-    if (index < menuOptions.length - 1) {
-      let padding = '==';
-      writeToScreen(screen, menuX, y, padding);
-      menuX += padding.length;
-    }
-  });
+  for (let i = 0; i < 2; i++) {
+    menuX = x;
+    menuOptions.forEach((option, index) => {
+      writeToScreen(
+          screen, menuX, y + i, option, {type: 'MAIN_MENU_CLICK', pos: index});
+      menuX += option.length;
+      if (index < menuOptions.length - 1) {
+        let padding = '==';
+        writeToScreen(screen, menuX, y + i, padding);
+        menuX += padding.length;
+      }
+    });
+  }
 
+  y += 1;
   writeToScreen(screen, x, y + 2, '---', {type: 'DECREASE_THEORETICAL_DAYS'});
 
-  const scoreText = ` Days: ${druid.days} (${druid.theoreticalDays}) `;
+  let theoretical = (druid.theoreticalDays != druid.days) ? `(${druid.theoreticalDays}) ` : '';
+  const scoreText = ` Days: ${druid.days} ${theoretical}`;
   writeToScreen(screen, x + 3, y + 2, scoreText, {type: 'TOP_BAR_CLICK'});
 
-  writeToScreen(
-      screen, x + scoreText.length + 3, y + 2, '+++',
-      {type: 'INCREASE_THEORETICAL_DAYS'});
+  if (druid.theoreticalDays != druid.days) {
+    writeToScreen(
+        screen, x + scoreText.length + 3, y + 2, '+++',
+        {type: 'INCREASE_THEORETICAL_DAYS'});
+  }
 
   writeToScreen(
       screen, x + scoreText.length + 10, y + 2, `Crystals: ${druid.crystals}`,
@@ -49,7 +56,7 @@ export function displayVillageInfo(druid, village, screen, x = 0, y = 0) {
   writeToScreen(screen, x, y, `${village.name}`, {type: 'VILLAGE_LOG'});
   y += 1;
 
-  let villagers = 'H'.repeat(village.villagers.length);
+  let villagers = 'H'.repeat(village.getHealthy());
   villagers += 'S'.repeat(village.getSick());
   villagers += 'D'.repeat(village.getDead());
 
@@ -91,15 +98,22 @@ export function displayPatients(druid, screen, x = 0, y = 0) {
 
   y = displayVillageInfo(druid, village, screen, x, y)
 
+  const patients = village.getPatients();
+  console.log(patients);
+  if (patients.length <= 0) {
+    return;
+  }
+
   const colSize = 30;
-  writeToScreen(screen, x, y, '='.repeat(colSize/2), {type: 'PATIENT_LFT'});
-  writeToScreen(screen, x+colSize/2, y, '='.repeat(colSize/2), {type: 'PATIENT_RGT'});
+  writeToScreen(screen, x, y, '='.repeat(colSize / 2), {type: 'PATIENT_LFT'});
+  writeToScreen(
+      screen, x + colSize / 2, y, '='.repeat(colSize / 2),
+      {type: 'PATIENT_RGT'});
   y += 1;
 
   const lft = druid.windowP > 0 ? '<' : ' ';
-  const rgt =
-      village.patients.length > druid.windowP + druid.windowPSize ? '>' : ' ';
-  let header = `${druid.cursorP + 1} of ${village.patients.length}`;
+  const rgt = patients.length > druid.windowP + druid.windowPSize ? '>' : ' ';
+  let header = `${druid.cursorP + 1} of ${patients.length}`;
   let paddingLft = ' '.repeat((colSize - header.length - 2) / 2);
   let paddingRgt = ' '.repeat(colSize - header.length - paddingLft.length - 2);
   writeToScreen(screen, x, y, `${lft}` + paddingLft, {type: 'PATIENT_LFT'});
@@ -109,45 +123,34 @@ export function displayPatients(druid, screen, x = 0, y = 0) {
       paddingRgt + `${rgt}`, {type: 'PATIENT_RGT'});
 
   y += 1;
-  writeToScreen(screen, x, y, '='.repeat(colSize/2), {type: 'PATIENT_LFT'});
-  writeToScreen(screen, x+colSize/2, y, '='.repeat(colSize/2), {type: 'PATIENT_RGT'});
+  writeToScreen(screen, x, y, '='.repeat(colSize / 2), {type: 'PATIENT_LFT'});
+  writeToScreen(
+      screen, x + colSize / 2, y, '='.repeat(colSize / 2),
+      {type: 'PATIENT_RGT'});
   y += 1;
 
-  if (village.patients.length <= druid.windowP) {
-    druid.windowP =
-        Math.max(0, village.patients.length - druid.windowPSize - 1);
+  if (patients.length <= druid.windowP) {
+    druid.windowP = Math.max(0, patients.length - druid.windowPSize - 1);
   }
-  const end =
-      Math.min(druid.windowP + druid.windowPSize, village.patients.length);
+  let patient = patients[druid.cursorP];
 
   let lineStr = '';
-  for (let i = druid.windowP; i < end; i++) {
-    const cursor_s = ' ';
-    let s = `${cursor_s} (T) ${village.patients[i].id} `;
-    s += village.patients[i].dragonscaleActive ? '[D]' : '';
-    s += village.patients[i].silvervineActive ? '[S]' : '';
-    lineStr += s + ' '.repeat(colSize - s.length);
-  }
+  let s = ` (T) ${patient.id} `;
+  s += patient.dragonscaleActive ? '[D]' : '';
+  s += patient.silvervineActive ? '[S]' : '';
+  lineStr += s + ' '.repeat(colSize - s.length);
   writeToScreen(screen, x, y, lineStr, {type: 'PATIENT_LOG'});
 
   y += 1;
 
   lineStr = '';
-  for (let i = druid.windowP; i < end; i++) {
-    const disease = village.patients[i].disease;
-    const d_name = disease.diseaseType.name;
-    let s = `  Dis: ${d_name} `;
-    s = s.slice(0, Math.min(s.length, colSize));
-    lineStr += s + ' '.repeat(colSize - s.length);
-  }
+  const disease = patient.disease;
+  const d_name = disease.diseaseType.name;
+  s = `  Dis: ${d_name} `;
+  s = s.slice(0, Math.min(s.length, colSize));
+  lineStr += s + ' '.repeat(colSize - s.length);
   writeToScreen(screen, x, y, lineStr, {type: 'PATIENT_LOG'});
   y += 1;
-
-  if (village.patients.length <= 0) {
-    return;
-  }
-
-  let patient = village.patients[druid.windowP];
 
   let [organs, drugsTaken] = patient.getOrgans(druid.theoreticalDays);
 
@@ -172,7 +175,7 @@ export function displayPatients(druid, screen, x = 0, y = 0) {
     y += 1;
   }
 
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 1; i++) {
     if (i < patient.powerups.length) {
       let str = `+ ${patient.powerups[i][0]}`;
       let powerupFn = patient.powerups[i][1];
@@ -183,7 +186,6 @@ export function displayPatients(druid, screen, x = 0, y = 0) {
     y += 1;
   }
 
-  y += 1;
   displayInventory(druid, screen, 1, y, false);
 
   patient.clearOrganInfo();
@@ -367,7 +369,7 @@ function displayLog(druid, screen, x, y, log, clickHandlerType = null) {
 }
 
 export function displayPatientLog(druid, screen, x = 0, y = 0) {
-  const patient = druid.currentVillage().patients[druid.cursorP];
+  const patient = druid.currentVillage().getPatients()[druid.cursorP];
   displayLog(druid, screen, x, y, patient.log, 'LOG_CLICK');
 }
 
@@ -416,9 +418,14 @@ export function displayMap(druid, screen, x = 0, y = 0) {
       if (village !== undefined) {
         xVillage = village.displayLoc.x;
         yVillage = village.displayLoc.y;
-        writeToScreen(
-            screen, x + j * 7 + village.displayLoc.x + 1,
-            y + i * 4 + 1 + village.displayLoc.y, 'V');
+        for (let m = 0; m < 2; m++) {
+          for (let n = 0; n < 2; n++) {
+            writeToScreen(
+                screen, x + j * 7 + village.displayLoc.x + 1 + m,
+                y + i * 4 + 1 + village.displayLoc.y + n, 'V',
+                {type: 'ENTER_VILLAGE', village: village});
+          }
+        }
       }
 
       if (druidHere) {
@@ -439,4 +446,41 @@ export function displayMap(druid, screen, x = 0, y = 0) {
 
   displayEnvironment(
       druid.map.getCurrentEnvironment(), 0, druid, screen, x, y + 20);
+}
+
+export function displayVillageMap(druid, screen, x = 0, y = 0) {
+  const environmentSymbols = {
+    'Forest': '!',    // Trees for Forest
+    'Swamp': '~',     // Water for Swamp
+    'Mountain': '^',  // Mountain for Mountain
+    'Lake': '-',      // Water for Lake
+  };
+
+  const village = druid.currentVillage();
+
+  if (village === undefined) {
+    writeToScreen(screen, x, y, 'You are not in a village.');
+    return;
+  }
+
+  y = displayVillageInfo(druid, village, screen, x, y);
+
+  let env = druid.map.getCurrentEnvironment();
+  let envSymbol = environmentSymbols[env.name];
+
+  const grid = village.villageMap.grid;
+  const gridFn = village.villageMap.gridFn;
+
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      let symbol = grid[i][j];
+      if (symbol === ' ') {
+        if (Math.random() < 0.05) {
+          symbol = envSymbol;
+        }
+      }
+      let fn = gridFn[i][j];
+      writeToScreen(screen, x + j, y + i, symbol, fn);
+    }
+  }
 }

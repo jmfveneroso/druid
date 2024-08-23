@@ -33,8 +33,8 @@ export class Map {
 
       village.location = { x: x, y: y };
 
-      const xVillage = Math.floor(Math.random() * 6);
-      const yVillage = Math.floor(Math.random() * 3);
+      const xVillage = Math.floor(Math.random() * 5);
+      const yVillage = Math.floor(Math.random() * 2);
       village.displayLoc = { x: xVillage, y: yVillage };
     }
   }

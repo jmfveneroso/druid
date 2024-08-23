@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Set the port to 8000
-const port = 8001;
+const port = 8002;
 
 // Create the server
 const server = http.createServer((req, res) => {

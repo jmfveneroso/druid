@@ -10,10 +10,15 @@ function handleClick(druid, data) {
         break;
       case "MAIN_MENU_CLICK":
         let key = Object.keys(druid.mainMenuOptions)[data.pos];
+        if (data.pos == 2) {
+          console.log(druid.gameState);
+          druid.setNextState(druid.gameState);
+        }
         druid.setState(druid.mainMenuOptions[key]);
         break;
       case "MIASMA_CLICK":
         druid.setState('REMOVE_MIASMA');
+        druid.setNextState('VILLAGE_MAP');
         break;
       case "PATIENT_LFT":
         druid.updateCursorP(druid.cursorP - 1);
@@ -82,6 +87,12 @@ function handleClick(druid, data) {
       case "MOVE_DRUID":
         druid.move(data.to.x, data.to.y);
         break;
+      case "ENTER_VILLAGE":
+        druid.enterVillage(data.village);
+        break;
+      case "SELECT_VILLAGER":
+        druid.selectVillager(data.villager);
+        break;
       case "MSG":
         break;
     }
@@ -92,6 +103,8 @@ function handleClick(druid, data) {
   if (druid.nextState === undefined) {
     if (druid.gameState === 'MAP') {
       druid.setState('VILLAGE');
+    } else if (druid.gameState === 'VILLAGE') {
+      druid.setState('VILLAGE_MAP');
     } else {
       druid.setState('MAP');
     }

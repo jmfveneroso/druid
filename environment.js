@@ -77,9 +77,6 @@ class Environment {
   }
 
   getWeightsAsProbabilityMap() {
-    console.log(this.herbs);
-    console.log(this.weights);
-    console.log(this.boostedWeights);
     const totalWeight = this.boostedWeights.reduce((acc, weight) => acc + weight, 0);
     const probabilityMap = {};
 
