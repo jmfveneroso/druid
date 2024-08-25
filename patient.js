@@ -12,11 +12,12 @@ class Organ {
     this.patient = patient;
     this.decrease = 0;
     this.justSpreaded = false;
+    this.spreaded = false;
   }
 
   damage(damage) {
     if (this.patient.silvervineActive) {
-      return;
+      return false;
     }
 
     damage = Math.min(this.hp, damage);
@@ -26,10 +27,16 @@ class Organ {
     if (this.hp <= 0) {
       this.critical = true;
       this.patient.logMsg(`${this.name} is now critical`);
+      if (!this.spreaded) {
+        this.spreaded = true;
+        return true;
+      }
     }
+    return false;
   }
 
   treat(healing, canHealCritical = false, canCure = true) {
+    // canCure = true;
     healing *= this.patient.getMultiplier();
 
     if (!this.critical) {
@@ -195,7 +202,7 @@ export class Patient {
   }
 
   isDead() {
-    return this.organs.filter(organ => organ.critical).length >= 2;
+    return this.organs.filter(organ => organ.critical).length >= 3;
   }
 
   isCured() {

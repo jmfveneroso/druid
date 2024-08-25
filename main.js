@@ -47,8 +47,10 @@ function handleClick(druid, data) {
         druid.moveLog(10, data.maxLen);
         break;
       case "GATHER":
+        // const env = environments[data.pos];
+        // druid.gatherIngredients(env);
         const env = environments[data.pos];
-        druid.gatherIngredients(env);
+        druid.startHotCold(env);
         break;
       case "TRAVEL":
         druid.travel(data.pos);
@@ -93,6 +95,28 @@ function handleClick(druid, data) {
       case "SELECT_VILLAGER":
         druid.selectVillager(data.villager);
         break;
+      case "MOVE_UP_HOT_COLD":
+        druid.game.move("up", druid);
+        break;
+      case "MOVE_LEFT_HOT_COLD":
+        druid.game.move("left", druid);
+        break;
+      case "MOVE_RIGHT_HOT_COLD":
+        druid.game.move("right", druid);
+        break;
+      case "MOVE_DOWN_HOT_COLD":
+        druid.game.move("down", druid);
+        break;
+      case "DIG_HOT_COLD":
+        druid.game.dig(druid);
+        break;
+      case "WHISPER_HOT_COLD":
+        druid.game.whisperOfNature();
+        break;
+      case "FINISH_HOT_COLD":
+        druid.game.stamina = 0;
+        druid.state = "MAP";
+        break;
       case "MSG":
         break;
     }
@@ -100,17 +124,19 @@ function handleClick(druid, data) {
     return;
   }
 
-  if (druid.nextState === undefined) {
-    if (druid.gameState === 'MAP') {
-      druid.setState('VILLAGE');
-    } else if (druid.gameState === 'VILLAGE') {
-      druid.setState('VILLAGE_MAP');
+  if (druid.gameState !== 'HOT_COLD') {
+    if (druid.nextState === undefined) {
+      if (druid.gameState === 'MAP') {
+        druid.setState('VILLAGE');
+      } else if (druid.gameState === 'VILLAGE') {
+        druid.setState('VILLAGE_MAP');
+      } else {
+        druid.setState('MAP');
+      }
     } else {
-      druid.setState('MAP');
+      druid.setState(druid.nextState);
+      druid.nextState = undefined;
     }
-  } else {
-    druid.setState(druid.nextState);
-    druid.nextState = undefined;
   }
   printScreen(druid, true, handleClick);
 }

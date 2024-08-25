@@ -283,6 +283,8 @@ export class VillageMap {
       for (let j = 0; j < 3; j++) {
         if (villager.isDead()) {
           this.grid[y][x+j] = "±";
+        } else if (villager.isCured()) {
+          this.grid[y][x+j] = "H";
         } else if (villager.isCritical()) {
           this.grid[y][x+j] = "*";
         } else if (villager.isSick()) {
@@ -358,8 +360,11 @@ export class Village {
   }
 
   addPatient() {
+    let healthyVillagers = this.villagers.filter(p => !p.isSick());
+
     const newPatient =
-        this.villagers[Math.floor(Math.random() * this.villagers.length)];
+        healthyVillagers[Math.floor(Math.random() * healthyVillagers.length)];
+
     newPatient.infect();
     let numSick = this.getSick();
     this.logMsg(`${newPatient.id} got sick. Num sick: ${numSick}.`);

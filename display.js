@@ -87,6 +87,9 @@ export function printScreen(druid, isBrowser, handleClick) {
     case 'VILLAGE_MAP':
       views.displayVillageMap(druid, screen, lft, top);
       break;
+    case 'HOT_COLD':
+      views.displayHotCold(druid, screen, lft, top);
+      break;
     default:
       break;
   }

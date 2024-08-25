@@ -448,13 +448,14 @@ export function displayMap(druid, screen, x = 0, y = 0) {
       druid.map.getCurrentEnvironment(), 0, druid, screen, x, y + 20);
 }
 
+const environmentSymbols = {
+  'Forest': '!',    // Trees for Forest
+  'Swamp': '~',     // Water for Swamp
+  'Mountain': '^',  // Mountain for Mountain
+  'Lake': '-',      // Water for Lake
+};
+
 export function displayVillageMap(druid, screen, x = 0, y = 0) {
-  const environmentSymbols = {
-    'Forest': '!',    // Trees for Forest
-    'Swamp': '~',     // Water for Swamp
-    'Mountain': '^',  // Mountain for Mountain
-    'Lake': '-',      // Water for Lake
-  };
 
   const village = druid.currentVillage();
 
@@ -483,4 +484,59 @@ export function displayVillageMap(druid, screen, x = 0, y = 0) {
       writeToScreen(screen, x + j, y + i, symbol, fn);
     }
   }
+}
+
+export function displayHotCold(druid, screen, x = 0, y = 0) {
+  let game = druid.game;
+  let grid = game.grid;
+  let env = game.environment;
+  let envSymbol = environmentSymbols[env.name];
+
+  let arr = ["FAR", "CLOSE", "VERY CLOSE", "ON TOP"];
+  game.whisperOfNature();
+  let howClose = (game.howClose >= 0) ? "- " + arr[game.howClose] : "";
+  writeToScreen(screen, x + 4, y, `Stamina: ${game.stamina} ${howClose}`, {type: "WHISPER_HOT_COLD"});
+  game.howClose = -1;
+
+  y += 3;
+  x += 2;
+
+  let height = grid.length;
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      let symbol = grid[i][j];
+        symbol = " ";
+        if (Math.random() < 0.5) {
+          symbol = envSymbol;
+        }
+
+      let fn = undefined;
+      if (game.druidPosition.x == j && game.druidPosition.y == i) {
+        symbol = "@";
+	fn = {type: "DIG_HOT_COLD"};
+      } else if (game.druidPosition.y == i) {
+        if (j < game.druidPosition.x) {
+	  fn = {type: "MOVE_LEFT_HOT_COLD"};
+        } else if (j > game.druidPosition.x) {
+	  fn = {type: "MOVE_RIGHT_HOT_COLD"};
+	}
+      } else if (game.druidPosition.x == j) {
+        if (i < game.druidPosition.y) {
+	  fn = {type: "MOVE_UP_HOT_COLD"};
+        } else if (i > game.druidPosition.y) {
+	  fn = {type: "MOVE_DOWN_HOT_COLD"};
+	}
+      }
+
+      for (let m = -1; m < 1; m++) {
+        for (let n = -1; n < 1; n++) {
+          writeToScreen(screen, x + j*2 + n, y + i*2 + m, symbol, fn);
+        }
+      }
+    }
+  }
+
+  y += height*2 + 1;
+
+  writeToScreen(screen, x + 32, y+2, "[FINISH]", {type: "FINISH_HOT_COLD"});
 }

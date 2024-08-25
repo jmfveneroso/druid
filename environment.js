@@ -4,7 +4,7 @@ class Environment {
   constructor(name, herbs) {
     this.name = name;
     this.herbs = herbs;
-    this.known = new Array(herbs.length).fill(false);
+    this.known = new Array(herbs.length).fill(true);
     this.weights = herbs.map(h => herbMap[h].chance);
     this.boostedWeights = herbs.map(h => herbMap[h].chance);
   }

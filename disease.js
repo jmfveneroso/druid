@@ -48,18 +48,20 @@ export class Disease {
     if (this.diseaseCounter > 0) return;
 
     this.affectedOrgans.forEach(organ => {
-      organ.damage(this.diseaseType.hpReduction);
+      if (organ.damage(this.diseaseType.hpReduction)) {
+        this.spreadDisease();
+      }
     });
 
     this.diseaseType.applyAdditionalEffects(this.patient, this.affectedOrgans);
     this.diseaseCounter = this.diseaseType.diseaseProgression;
 
-    this.spreadDisease();
+    // this.spreadDisease();
   }
 
   spreadDisease() {
     this.spreadCounter += 1;
-    if (this.spreadCounter >= this.diseaseType.spreadTime) {
+    // if (this.spreadCounter >= this.diseaseType.spreadTime) {
       this.spreadCounter = 0;
       const healthyOrgans = this.patient.organs.filter(o => !o.diseased);
       if (healthyOrgans.length > 0) {
@@ -70,11 +72,14 @@ export class Disease {
         newOrgan.justSpreaded = true;
         this.patient.logMsg(`The disease spread to the ${newOrgan.name}.`);
       }
-    }
+    // }
   }
 }
 
 // Effects functions
+function noEffect(patient, affectedOrgans) {
+}
+
 function pulmonaryDecayEffect(patient, affectedOrgans) {
   const lungs = patient.getOrgan('Lungs');
   if (!lungs.diseased) return;
@@ -123,9 +128,6 @@ function hepaticDeteriorationEffect(patient, affectedOrgans) {
     });
   }
 }
-
-const hepaticDeterioration = new DiseaseType(
-    'Hepatic Deterioration', 'Liver', 3, 20, 10, hepaticDeteriorationEffect);
 
 function cerebralSepsisEffect(patient, affectedOrgans) {
   const heart = patient.organs.filter(o => o.name === 'Heart');
@@ -217,26 +219,25 @@ function randomChoice(arr) {
 
 const randomDisease1 = generateRandomDisease();
 
-const VIRULENCE = 3;
+const VIRULENCE = 10;
 
 const pulmonaryDecay = new DiseaseType(
-    'Pulmonary Decay', 'Lungs', 5, VIRULENCE * 2, VIRULENCE * 4,
-    pulmonaryDecayEffect);
+    'Pulmonary Decay', 'Lungs', 1, VIRULENCE, 2, noEffect);
 
 const neurotoxicInfection = new DiseaseType(
-    'Neurotoxic Infection', 'Brain', 4, VIRULENCE * 4, VIRULENCE * 2,
-    neurotoxicInfectionEffect);
+    'Neurotoxic Infection', 'Brain', 1, VIRULENCE, 2, noEffect);
 
 const renalNecrosis = new DiseaseType(
-    'Renal Necrosis', 'Kidneys', 3, VIRULENCE, VIRULENCE, renalNecrosisEffect);
+    'Renal Necrosis', 'Kidneys', 1, VIRULENCE, 2, noEffect);
 
 const cardiacConstriction = new DiseaseType(
-    'Cardiac Constriction', 'Heart', 2, VIRULENCE * 4, VIRULENCE,
-    cardiacConstrictionEffect);
+    'Cardiac Constriction', 'Heart', 1, VIRULENCE, 2, noEffect);
+
+const hepaticDeterioration = new DiseaseType(
+    'Hepatic Deterioration', 'Liver', 1, VIRULENCE, 2, noEffect);
 
 const cerebralSepsis = new DiseaseType(
-    'Cerebral Sepsis', 'Brain', 1, VIRULENCE * 10, VIRULENCE,
-    cerebralSepsisEffect);
+    'Cerebral Sepsis', 'Brain', 1, VIRULENCE, 2, noEffect);
 
 export const diseaseRegistry = [
   pulmonaryDecay, neurotoxicInfection, renalNecrosis, cardiacConstriction,

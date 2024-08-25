@@ -4,6 +4,7 @@ import {Map} from './map.js';
 import {Patient} from './patient.js';
 import {Potion} from './potion.js';
 import {villages} from './village.js';
+import {HerbGatheringGame} from './hotcold.js';
 
 const MOURNING_DURATION = 4;
 const RUNE_DISCOVERY_CHANCE = 0.5;
@@ -113,13 +114,19 @@ export class Druid {
     this.setState('MSG');
   }
 
-  revealRune(herbName, i) {
-    const revealedRunes = herbMap[herbName].revealRune(i);
+  revealRune(herbName) {
+    for (let i = 0; i < 3; i++) {
+      if (herbMap[herbName].revealedRunes[i] == '*') {
+        herbMap[herbName].revealedRunes[i] = herbMap[herbName].runes[i];
+        break;
+      }
+    }
   }
 
   treatPatient(patientId, herbName) {
     const patient = this.currentVillage().getPatients()[patientId];
     patient.treatPatient(herbName, this);
+    this.revealRune(herbName);
   }
 
   progressGame() {
@@ -127,7 +134,7 @@ export class Druid {
 
     villages.forEach(v => {
       v.villagers.forEach(patient => {
-        if (patient.isSick()) {
+        if (patient.isSick() && !patient.dead && !patient.cured) {
           patient.progress(this, this.days);
         }
 
@@ -238,30 +245,8 @@ export class Druid {
         return;
       }
 
-      // Reveal matching runes.
-      // let revealedRunes1 = herbMap[herbName1].revealedRunes;
-      // let revealedRunes2 = herbMap[herbName2].revealedRunes;
-      // for (let i = 0; i < 3; i++) {
-      //   const rune1 = herbMap[herbName1].runes[i];
-      //   const rune2 = herbMap[herbName2].runes[i];
-      //   if (rune2 === complementaryRunes[rune1]) {
-      //     revealedRunes1[i] = herbMap[herbName1].runes[i];
-      //     revealedRunes2[i] = herbMap[herbName2].runes[i];
-      //   }
-      // }
-      // herbMap[herbName1].revealedRunes = revealedRunes1;
-      // herbMap[herbName2].revealedRunes = revealedRunes2;
-      // Reveal matching runes.
-
-      for (let i = 0; i < 3; i++) {
-        if (herbMap[herbName1].revealedRunes[i] == '*') {
-          herbMap[herbName1].revealedRunes[i] = herbMap[herbName1].runes[i];
-          break;
-        } else if (herbMap[herbName2].revealedRunes[i] == '*') {
-          herbMap[herbName2].revealedRunes[i] = herbMap[herbName2].runes[i];
-          break;
-        }
-      }
+      this.revealRune(herbName1);
+      this.revealRune(herbName2);
 
       const potion = new Potion(this.selectedHerbs, this.combinationMap);
       if (potion.isSuccessful()) {
@@ -401,6 +386,17 @@ export class Druid {
   move(x, y) {
     if (this.map.moveDruid(x, y)) {
       let env = this.map.getCurrentEnvironment();
+
+      if (false) {
+        if (this.map.getCurrentVillage()) {
+          this.enterVillage();
+        } else {
+          this.startHotCold(env);
+          this.setNextState('HOT_COLD');
+        }
+        return;
+      }
+
       if (this.lastEnvironment !== env) {
         env.resetWeights();
       } else {
@@ -410,6 +406,11 @@ export class Druid {
       this.gatherIngredients(env);
       this.setNextState('MAP');
     }
+  }
+
+  startHotCold(environment) {
+    this.game = new HerbGatheringGame(environment);
+    this.setState('HOT_COLD');
   }
 
   enterVillage(village) {

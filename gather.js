@@ -6,7 +6,7 @@ const NUM_GATHER = 3;
 export class HerbGathering {
   constructor() {
     this.availableHerbs = availableHerbs;
-    this.inventory = Object.fromEntries(availableHerbs.map(herb => [herb, 0]));
+    this.inventory = Object.fromEntries(availableHerbs.map(herb => [herb, 1]));
     this.justAcquired =
         Object.fromEntries(availableHerbs.map(herb => [herb, 0]));
     this.maxInventory = 40;

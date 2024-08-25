@@ -228,6 +228,8 @@ function giantsHeartrootEffect(patient) {
 }
 
 let BASE_DURATION = 3;
+let QUICK_DURATION = 0;
+let SUPER_QUICK_DURATION = 0;
 
 // Define possible effects as an array of objects in JavaScript
 let possibleEffects = [
@@ -237,104 +239,104 @@ let possibleEffects = [
     chance: 0.4,
     effectFunction: silvervineEffect,
     finalFunction: noEffect,
-    duration: 1
+    duration: QUICK_DURATION
   },
   {
     description: '+4 Heart -2 Liver (NC).',
     chance: 0.4,
     effectFunction: mossbellEffect,
     finalFunction: noEffect,
-    duration: 1
+    duration: QUICK_DURATION
   },
   {
     description: '+4 Lungs -2 Kidneys (NC).',
     chance: 0.4,
     effectFunction: fireweedEffect,
     finalFunction: noEffect,
-    duration: 1
+    duration: QUICK_DURATION
   },
   {
     description: '+4 Liver -2 Brain (NC).',
     chance: 0.4,
     effectFunction: wolfsbaneEffect,
     finalFunction: noEffect,
-    duration: 1
+    duration: QUICK_DURATION
   },
   {
     description: '+4 Kidney -2 Heart (NC).',
     chance: 0.4,
     effectFunction: bittermintEffect,
     finalFunction: noEffect,
-    duration: 1
+    duration: QUICK_DURATION
   },
   {
     description: '+4 Brain -2 Lungs (NC).',
     chance: 0.4,
     effectFunction: ironbarkSapEffect,
     finalFunction: noEffect,
-    duration: 1
+    duration: QUICK_DURATION
   },
   {
     description: '+1 All (NC).',
     chance: 0.4,
     effectFunction: crimsonCloverEffect,
     finalFunction: noEffect,
-    duration: 0
+    duration: SUPER_QUICK_DURATION
   },
   {
     description: '+2 Heart +2 Lungs (NC).',
     chance: 0.4,
     effectFunction: whisperleafEffect,
     finalFunction: noEffect,
-    duration: 1
+    duration: QUICK_DURATION
   },
   {
     description: '+2 Liver +2 Kidneys (NC).',
     chance: 0.4,
     effectFunction: dewrootEffect,
     finalFunction: noEffect,
-    duration: 1
+    duration: QUICK_DURATION
   },
   {
     description: 'Next potion x2.',
     chance: 0.4,
     effectFunction: dragonscaleFungusEffect,
     finalFunction: noEffect,
-    duration: 0
+    duration: SUPER_QUICK_DURATION
   },
 
   // Base.
   {
     description: '+4 Heart.',
-    chance: 0.2,
+    chance: 0.3,
     effectFunction: moonrootEffect,
     finalFunction: noEffect,
     duration: BASE_DURATION
   },
   {
     description: '+4 Lungs.',
-    chance: 0.2,
+    chance: 0.3,
     effectFunction: sunleafEffect,
     finalFunction: noEffect,
     duration: BASE_DURATION
   },
   {
     description: '+4 Liver.',
-    chance: 0.2,
+    chance: 0.3,
     effectFunction: nightshadeBerryEffect,
     finalFunction: noEffect,
     duration: BASE_DURATION
   },
   {
     description: '+4 Kidneys.',
-    chance: 0.2,
+    chance: 0.3,
     effectFunction: bloodthornEffect,
     finalFunction: noEffect,
     duration: BASE_DURATION
   },
   {
     description: '+4 Brain.',
-    chance: 0.2,
+    chance: 0.3,
     effectFunction: lunarBlossomEffect,
     finalFunction: noEffect,
     duration: BASE_DURATION
