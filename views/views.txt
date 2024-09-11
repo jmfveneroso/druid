@@ -1,0 +1,114 @@
+<<< log
++-----------------------------+
+@forv line in lines
+| @line                     @ |
+@endforv
++-----------------------------+
+>>> log
+
+<<< track_animal
++--------------------------------------+
+| @name             @ | @prob        @ |
++--------------------------------------+
+>>> track_animal
+
+<<< xxx
+XXX @ msg   @
+XXX
+XXXXXXXQQQQQQQQQQQQ
+XXX
+>>> xxx
+
+<<< yyy
+
+ZZZZ 
+ZZZZ
+
+>>> yyy
+
+<<< hunt
+@onclick
+++++++++++++++++++++++++++++++++++++++++
++ @msg                               @ +
+++++++++++++++++++++++++++++++++++++++++
+@endonclick
+
+@forv a in animals         @
+@template track_animal a   @
+@endforv                   @
+
+# @def {dwadwdawd: 12, dwadwa: 13, ddwadw: 14}
+# @template log msg
+# @enddef
+
+  %box xxx   %  %box yyy   %
+  %          %  %          %
+  %          %  %          %
+  %          %  %          %
+  %          ;  %          ;
+
+XXXX
+
+>>> hunt
+
+<<< shoot
++---------------------------+
+@matrix animal_matrix
+#  @animal_bar               @
+#    
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+#  @shoot_cursor             @
+>>> shoot
+
+<<< btn
+@onclick shoot_fn
++---+
++   +
++---+
+@endonclick
+>>> btn
+
+<<< sneak
+++++++++++++++++++++++++++++++++++++++++
++ @msg                               @ +
+++++++++++++++++++++++++++++++++++++++++
+
+Distance: @distance     @
+
+SNEAK: @sneak_prob      @
+SHOOT: @shoot_prob      @
+
+%box shoot                  %  %box btn %
+%                           %  %        %
+%                           %  %        ;
+%                           %  
+%                           %  
+%                           %  
+%                           %  
+%                           %  
+%                           %  
+%                           %  
+%                           %  
+%                           %  
+%                           %  
+%                           %  
+%                           %  
+%                           %  
+%                           ;  
+
+>>> sneak
+
+<<< test
+
+>>> test
