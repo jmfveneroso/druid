@@ -48,7 +48,7 @@ export function displayScore(druid, screen, x = 0, y = 0) {
   }
 
   writeToScreen(
-      screen, x + scoreText.length + 10, y + 2, `Crystals: ${druid.crystals}`,
+      screen, x + scoreText.length + 10, y + 2, `Gold: ${druid.gold} Stamina: ${druid.stamina}`,
       {type: 'TOP_BAR_CLICK'});
 }
 
@@ -334,7 +334,7 @@ export function displayDruid(druid, screen, x = 0, y = 0) {
   const xpInfo = `XP: ${druid.xp} / ${druid.xpToNextLevel}`;
   writeToScreen(screen, x, y, levelInfo);
   writeToScreen(screen, x, y + 1, xpInfo);
-  writeToScreen(screen, x, y + 2, `Crystals: ${druid.crystals}`);
+  writeToScreen(screen, x, y + 2, `Gold: ${druid.gold}`);
 }
 
 function displayLog(druid, screen, x, y, log, clickHandlerType = null) {
@@ -539,4 +539,29 @@ export function displayHotCold(druid, screen, x = 0, y = 0) {
   y += height*2 + 1;
 
   writeToScreen(screen, x + 32, y+2, "[FINISH]", {type: "FINISH_HOT_COLD"});
+}
+
+export function displayHunt(druid, screen, x = 0, y = 0) {
+  for (let i = 0; i < druid.hunt.animals.length; i++) {
+    let animal = druid.hunt.animals[i];
+    let difficulty = animal.getDifficultyTracking() * 100;
+
+    writeToScreen(screen, x, y, `Hunt ${animal.name} -> ${difficulty}%`, {type: "HUNT_TRACK", animal: animal});
+    y += 2;
+  }
+  writeToScreen(screen, x, y, `Rest`, {type: "REST"});
+}
+
+export function displayHuntAnimal(druid, screen, x = 0, y = 0) {
+  let animal = druid.hunt.currentAnimal;
+
+  writeToScreen(screen, x, y, `Distance ${druid.hunt.distance}`);
+  y += 2;
+
+  let difficulty = animal.getDifficultySneaking() * 100;
+  writeToScreen(screen, x, y, `Sneak closer to ${animal.name} -> ${difficulty.toFixed(2)}%`, {type: "HUNT_SNEAK"});
+  y += 2;
+
+  difficulty = animal.getDifficultyShooting() * 100;
+  writeToScreen(screen, x, y, `Attempt shooting at ${animal.name} -> ${difficulty.toFixed(2)}%`, {type: "HUNT_SHOOT"});
 }

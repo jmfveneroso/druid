@@ -1,4 +1,6 @@
 import * as views from './views.js';
+import {GAME_STATE, track} from './yaml.js';
+import {renderer} from './renderer.js';
 
 function createScreen(width, height) {
   return Array.from({length: height}, () => Array(width).fill(' '));
@@ -26,6 +28,10 @@ function renderScreen(druid, screen, isBrowser, handleClick) {
 
         charElement.addEventListener('click', function() {
           handleClick(druid, fn);
+        });
+
+        charElement.addEventListener('mouseover', function() {
+          // handleClick(druid, fn);
         });
 
         rowElement.appendChild(charElement);
@@ -90,6 +96,19 @@ export function printScreen(druid, isBrowser, handleClick) {
     case 'HOT_COLD':
       views.displayHotCold(druid, screen, lft, top);
       break;
+    case 'HUNT':
+      renderer.counter = 0;
+      renderer.renderTemplate(screen, 1, 6, GAME_STATE["view"]);
+      break;
+    case 'HUNT_ANIMAL':
+      views.displayHuntAnimal(druid, screen, lft, top);
+      break;
+    // case 'HUNT_SNEAK':
+    //   views.displayHunt(druid, screen, lft, top);
+    //   break;
+    // case 'HUNT_SHOOT':
+    //   views.displayHunt(druid, screen, lft, top);
+    //   break;
     default:
       break;
   }

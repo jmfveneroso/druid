@@ -22,12 +22,24 @@ export class Map {
   }
 
   placeVillages(villages) {
-    for (let village of villages) {
-      let x, y;
-      do {
-        x = Math.floor(Math.random() * this.gridSize);
-        y = Math.floor(Math.random() * this.gridSize);
-      } while (this.grid[x][y][1]);
+    
+    let corners = [
+      { x: 0, y: 0 },
+      { x: 0, y: this.gridSize - 1 },
+      { x: this.gridSize - 1, y: 0 },
+      { x: this.gridSize - 1, y: this.gridSize - 1 },
+    ];
+
+    for (let i = 0; i < villages.length; i++) {
+      let village = villages[i];
+
+      let corner = corners[i];
+      let x = corner.x;
+      let y = corner.y;
+      // do {
+      //   x = Math.floor(Math.random() * this.gridSize);
+      //   y = Math.floor(Math.random() * this.gridSize);
+      // } while (this.grid[x][y][1]);
 
       this.grid[x][y][1] = village;
 

@@ -388,7 +388,7 @@ export let availableHerbs = [
   'Fireweed',       'Bittermint',      'Wolfsbane',      'Glimmer Fern',
   'Basilisk Scale', 'Serpent\'s Fang', 'Phoenix Ash',    'Giant\'s Heart',
   'Solar Blossom',  'Shadowthorn',     'Sky Fungus',     'Verdant Vine',
-  'Ironleaf',
+  'Ironleaf', 'Rabbit Pelt'
 ];
 
 function initializeHerbMap(availableHerbs, possibleEffects) {
@@ -410,6 +410,10 @@ function initializeHerbMap(availableHerbs, possibleEffects) {
         herb, x.description, x.chance, x.finalFunction, x.effectFunction,
         x.duration, false, ['A', 'A', 'A'], ['*', '*', '*']);
   });
+
+  herbMap['Rabbit Pelt'] = new Herb(
+      'Rabbit Pelt', 'The pelt of a rabbit.', 0, noEffect, noEffect,
+      0, true, ['A', 'A', 'A'], ['*', '*', '*']);
 
   return herbMap;
 }

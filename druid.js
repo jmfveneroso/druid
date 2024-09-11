@@ -5,6 +5,7 @@ import {Patient} from './patient.js';
 import {Potion} from './potion.js';
 import {villages} from './village.js';
 import {HerbGatheringGame} from './hotcold.js';
+import {Hunt} from './hunt.js';
 
 const MOURNING_DURATION = 4;
 const RUNE_DISCOVERY_CHANCE = 0.5;
@@ -53,11 +54,17 @@ export class Druid {
     this.map = new Map();
     this.lastEnvironment = undefined;
 
+    
     // Druid leveling system
     this.level = 1;
     this.xp = 0;
     this.xpToNextLevel = 100;  // XP needed to level up
     this.maxDrugs = 2;
+    this.gold = 100;
+    this.stamina = 100;
+    this.huntingSkill = 1;
+
+    this.hunt = new Hunt(this);
   }
 
   discardHerb(herbName) {
@@ -384,28 +391,35 @@ export class Druid {
   }
 
   move(x, y) {
-    if (this.map.moveDruid(x, y)) {
-      let env = this.map.getCurrentEnvironment();
-
-      if (false) {
-        if (this.map.getCurrentVillage()) {
-          this.enterVillage();
-        } else {
-          this.startHotCold(env);
-          this.setNextState('HOT_COLD');
-        }
-        return;
-      }
-
-      if (this.lastEnvironment !== env) {
-        env.resetWeights();
-      } else {
-        env.boostWeights();
-      }
-
-      this.gatherIngredients(env);
-      this.setNextState('MAP');
+    if (!this.map.moveDruid(x, y)) {
+      return;
     }
+
+    let env = this.map.getCurrentEnvironment();
+    
+    if (env.name == "Forest") {
+      this.setState('HUNT');
+      return;
+    }
+
+    if (false) {
+      if (this.map.getCurrentVillage()) {
+        this.enterVillage();
+      } else {
+        this.startHotCold(env);
+        this.setNextState('HOT_COLD');
+      }
+      return;
+    }
+
+    if (this.lastEnvironment !== env) {
+      env.resetWeights();
+    } else {
+      env.boostWeights();
+    }
+
+    this.gatherIngredients(env);
+    this.setNextState('MAP');
   }
 
   startHotCold(environment) {
@@ -439,5 +453,9 @@ export class Druid {
     if (this.cursorP < this.windowP) {
       this.windowP -= 1;
     }
+  }
+
+  getRangedDamage() {
+    return this.huntingSkill;
   }
 }

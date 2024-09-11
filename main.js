@@ -117,7 +117,19 @@ function handleClick(druid, data) {
         druid.game.stamina = 0;
         druid.state = "MAP";
         break;
+      case "HUNT_TRACK":
+        druid.hunt.track(data.animal);
+        break;
+      case "HUNT_SNEAK":
+        druid.hunt.sneak();
+        break;
+      case "HUNT_SHOOT":
+        druid.hunt.shoot();
+        break;
       case "MSG":
+        break;
+      case "FN":
+        data.fn();
         break;
     }
     printScreen(druid, true, handleClick);
@@ -141,7 +153,11 @@ function handleClick(druid, data) {
   printScreen(druid, true, handleClick);
 }
 
+const druid = new Druid();
 if (typeof window !== 'undefined') {
-  const druid = new Druid();
+  printScreen(druid, true, handleClick);
+}
+
+export function run() {
   printScreen(druid, true, handleClick);
 }
