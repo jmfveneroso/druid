@@ -1,6 +1,7 @@
 import * as views from './views.js';
-import {GAME_STATE, track} from './yaml.js';
+import {GAME_STATE} from './data.js';
 import {renderer} from './renderer.js';
+import * as hunt from './hunt.js';
 
 function createScreen(width, height) {
   return Array.from({length: height}, () => Array(width).fill(' '));
@@ -52,10 +53,11 @@ function renderScreen(druid, screen, isBrowser, handleClick) {
 export function printScreen(druid, isBrowser, handleClick) {
   const screen = createScreen(views.SCREEN_WIDTH, views.SCREEN_HEIGHT);
 
-  views.displayScore(druid, screen, 1, 1);
+  // views.displayScore(druid, screen, 1, 1);
+  console.log(druid.gameState);
 
   let lft = 1;
-  let top = 6;
+  let top = 1;
   switch (druid.gameState) {
     case 'CHOOSE_ENVIRONMENT':
       views.displayEnvironments(druid, screen, lft, top);
@@ -98,17 +100,8 @@ export function printScreen(druid, isBrowser, handleClick) {
       break;
     case 'HUNT':
       renderer.counter = 0;
-      renderer.renderTemplate(screen, 1, 6, GAME_STATE["view"]);
+      renderer.renderTemplate(screen, lft, top, GAME_STATE["view"]);
       break;
-    case 'HUNT_ANIMAL':
-      views.displayHuntAnimal(druid, screen, lft, top);
-      break;
-    // case 'HUNT_SNEAK':
-    //   views.displayHunt(druid, screen, lft, top);
-    //   break;
-    // case 'HUNT_SHOOT':
-    //   views.displayHunt(druid, screen, lft, top);
-    //   break;
     default:
       break;
   }

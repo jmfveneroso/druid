@@ -5,7 +5,6 @@ import {Patient} from './patient.js';
 import {Potion} from './potion.js';
 import {villages} from './village.js';
 import {HerbGatheringGame} from './hotcold.js';
-import {Hunt} from './hunt.js';
 
 const MOURNING_DURATION = 4;
 const RUNE_DISCOVERY_CHANCE = 0.5;
@@ -62,9 +61,6 @@ export class Druid {
     this.maxDrugs = 2;
     this.gold = 100;
     this.stamina = 100;
-    this.huntingSkill = 1;
-
-    this.hunt = new Hunt(this);
   }
 
   discardHerb(herbName) {
@@ -453,9 +449,5 @@ export class Druid {
     if (this.cursorP < this.windowP) {
       this.windowP -= 1;
     }
-  }
-
-  getRangedDamage() {
-    return this.huntingSkill;
   }
 }

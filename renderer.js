@@ -1,3 +1,4 @@
+import {GAME_DATA, GAME_STATE, TEMP} from './data.js';
 import * as views from './views.js';
 
 export class TemplateReader {
@@ -33,6 +34,15 @@ export class TemplateReader {
     }
   }
 
+  getValue(value) {
+    if (Number.isInteger(value)) {
+      return value.toString();
+    } else if (!isNaN(value)) {
+      return parseFloat(value).toFixed(2);
+    }
+    return value;
+  }
+
   replaceVar(line, j, data) {
     let var_name = '';
     let k = j + 1;
@@ -43,21 +53,25 @@ export class TemplateReader {
       }
       var_name += char;
     }
-    
+
     let max_length = var_name.length + 2;
 
     var_name = var_name.trim();
 
     let value = data[var_name];
     if (value === undefined) {
-      return k;
+      value = GAME_STATE[var_name];
+      if (value === undefined) {
+        return k;
+      }
     }
-    
+
     let fn = undefined;
     if (typeof value === 'object') {
       fn = value.fn;
-      value = value.str.toString();
-    }
+      value = value.str;
+    } 
+    value = this.getValue(value);
 
     let text = value.slice(0, max_length).padEnd(max_length);
     this.writeToScreen(j, text, fn);
@@ -193,14 +207,15 @@ export class TemplateReader {
     }
 
     let [, template_name] = expression.split(' ');
-    
+
     for (let i = x; i < x + width; i++) {
       for (let j = y; j < y + height; j++) {
-        this.writeToBuffer(i, j, "#");
+        this.writeToBuffer(i, j, '#');
       }
     }
-    
-    this.renderer.renderTemplate(this.buffer, x, y, template_name, data, width, height);
+
+    this.renderer.renderTemplate(
+        this.buffer, x, y, template_name, data, width, height);
   }
 
   renderTemplate(lines, data) {
@@ -257,18 +272,20 @@ export class TemplateReader {
     for (let j = 0; j < this.max_height; j++) {
       for (let i = 0; i < this.max_width; i++) {
         let char = this.buffer[j][i][0];
-        if (char === "%") {
+        if (char === '%') {
           this.processBox(i, j, data);
         }
       }
     }
   }
 
-  writeBuffer(screen, x, y, max_width = views.SCREEN_WIDTH, max_height = views.SCREEN_HEIGHT) {
+  writeBuffer(
+      screen, x, y, max_width = views.SCREEN_WIDTH,
+      max_height = views.SCREEN_HEIGHT) {
     for (let i = 0; i < this.max_width; i++) {
       for (let j = 0; j < this.max_height; j++) {
-        if (x + i >= 0 && x + i < x + max_width && y >= 0 &&
-            y < y + max_height) {
+        if (x + i >= 0 && x + i < x + max_width && y + j >= 0 &&
+            y + j < y + max_height) {
           screen[y + j][x + i] = this.buffer[j][i];
         }
       }
@@ -320,7 +337,6 @@ export class Renderer {
       data = this.models[template_name](data, this.counter);
     }
 
-    let template_content = this.views[template_name];
     const lines = this.views[template_name].split('\n');
     let reader = new TemplateReader(this);
     this.counter += 1;

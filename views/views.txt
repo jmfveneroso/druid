@@ -1,3 +1,7 @@
+<<< stats
+--- @hours@Gold: @gold @Stamina: @stamina@ 
+>>> stats
+
 <<< log
 +-----------------------------+
 @forv line in lines
@@ -27,18 +31,18 @@ ZZZZ
 >>> yyy
 
 <<< hunt
-@onclick
+@template stats
+
 ++++++++++++++++++++++++++++++++++++++++
 + @msg                               @ +
 ++++++++++++++++++++++++++++++++++++++++
-@endonclick
 
 @forv a in animals         @
 @template track_animal a   @
 @endforv                   @
 
 # @def {dwadwdawd: 12, dwadwa: 13, ddwadw: 14}
-# @template log msg
+@template log msg
 # @enddef
 
   %box xxx   %  %box yyy   %
@@ -52,23 +56,8 @@ XXXX
 >>> hunt
 
 <<< shoot
-+---------------------------+
++----------------------------+
 @matrix animal_matrix
-#  @animal_bar               @
-#    
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-#  @shoot_cursor             @
 >>> shoot
 
 <<< btn
@@ -82,20 +71,19 @@ XXXX
 >>> btn
 
 <<< sneak
+@template stats
+
 ++++++++++++++++++++++++++++++++++++++++
 + @msg                               @ +
 ++++++++++++++++++++++++++++++++++++++++
 
-Distance: @distance     @
-
 SNEAK: @sneak_prob      @
-SHOOT: @shoot_prob      @
 
 %box shoot                  %  %box btn %
 %                           %  %        %
+%                           %  %        %
+%                           %  %        %
 %                           %  %        ;
-%                           %  
-%                           %  
 %                           %  
 %                           %  
 %                           %  
@@ -111,6 +99,23 @@ SHOOT: @shoot_prob      @
 
 >>> sneak
 
-<<< test
+<<< loot
+++++++++++++++++++++++++++++++++++++++++
++ @msg                               @ +
+++++++++++++++++++++++++++++++++++++++++
 
->>> test
+@onclick leave
++--------------------------------------+
+| LEAVE                                |
++--------------------------------------+
+>>> loot
+
+<<< chase
++--------------------------------------+
+| CHASE               | @prob        @ |
++--------------------------------------+
+@onclick leave
+| LEAVE                                |
++--------------------------------------+
+@endonclick
+>>> chase
