@@ -73,9 +73,11 @@ XXXX
 
 <<< btn
 @onclick shoot_fn
-+---+
-+   +
-+---+
++------+
++      +
++      +
++      +
++------+
 @endonclick
 >>> btn
 

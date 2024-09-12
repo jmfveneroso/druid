@@ -8,18 +8,25 @@ export let GAME_DATA = {
       'base_hp': 2,
       'base_difficulty': 4,
       'size': 0,
+      'base_difficulty': 6,
+      'rest': 15,
+      'speed': 1,
     },
     {
       'name': 'Deer',
       'base_hp': 6,
       'base_difficulty': 6,
       'size': 2,
+      'rest': 5,
+      'speed': 3
     },
     {
       'name': 'Wolf',
       'base_hp': 10,
       'base_difficulty': 8,
       'size': 1,
+      'rest': 15,
+      'speed': 3,
     },
   ]
 }
@@ -88,6 +95,9 @@ export function track() {
     GAME_STATE['shoot_cursor_direction'] = 1;
     GAME_STATE['has_shot'] = false;
     GAME_STATE['arrow_pos'] = undefined;
+    GAME_STATE['animal_dir'] = 1;
+    GAME_STATE['animal_goal'] = 10;
+    GAME_STATE['animal_rest'] = 0;
   }
 
   let env = GAME_STATE['current_env'];
@@ -139,16 +149,46 @@ export function sneak() {
   let cursor_pos = GAME_STATE['shoot_cursor_pos'];
   let arrow_pos = GAME_STATE['arrow_pos'];
   let length = 29;
+  let animal_dir = GAME_STATE['animal_dir'];
+  let animal_goal = GAME_STATE['animal_goal'];
 
   function updateLoop() {
     let isRight = animal_pos > length / 2;
-    let number = rollD(10);
-    if (number < 5) {
-    } else if (number < 8) {
-      animal_pos += (isRight) ? -1 : 1;
-    } else {
-      animal_pos += (isRight) ? 1 : -1;
+    let dist = Math.abs(animal_pos - length / 2);
+    
+    if (dist > 8) {
+      GAME_STATE['animal_dir'] = isRight ? -1 : 1;
     }
+    
+    let number = rollD(20);
+    if (number < 15) {
+    } else if (number < 19) {
+      //
+      // animal_pos += (isRight) ? -1 : 1;
+      // animal_pos += animal_dir;
+    } else {
+      // GAME_STATE['animal_dir'] *= -1;
+      // animal_pos += (isRight) ? 1 : -1;
+    }
+    
+    if (animal_pos === animal_goal) {
+      for (let i = 0; i < 5; i++) {
+        GAME_STATE['animal_goal'] = 3 + rollD(12);
+        if (Math.abs(animal_pos - GAME_STATE['animal_goal']) >= animal.speed) {
+          break;
+        }
+      }
+      GAME_STATE['animal_rest'] = animal.rest + rollD(5);
+    } 
+    
+    animal_dir = (animal_goal - animal_pos > 0) ? 1 : -1;
+    if (GAME_STATE['animal_rest'] > 0) {
+      GAME_STATE['animal_rest']--;
+    } else {
+      animal_pos += animal_dir;
+    }
+    
+    
     cursor_pos += GAME_STATE['shoot_cursor_direction'];
   
     animal_pos = Math.max(animal.size, Math.min(animal_pos, length - 1 - animal.size));
@@ -196,7 +236,9 @@ export function sneak() {
 
   template_data['animal_matrix'] = [""];
   for (let x = 0; x < 30; x++) {
-    if (Math.abs(x - animal_pos) <= animal.size) {
+    if (arrow_pos !== undefined && arrow_pos[0] == x && arrow_pos[1] == 0) {
+      template_data['animal_matrix'][0] += "|";
+    } else if (Math.abs(x - animal_pos) <= animal.size) {
       template_data['animal_matrix'][0] += "H";
     } else {
       template_data['animal_matrix'][0] += " ";
@@ -220,6 +262,7 @@ export function sneak() {
       template_data['animal_matrix'][y] += " ";
     }
   }
+  
 
   template_data['animal_matrix'][max_y] = "";
   for (let x = 0; x < 30; x++) {
