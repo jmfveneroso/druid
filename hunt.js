@@ -11,8 +11,13 @@ Object.assign(GAME_DATA, {
       'tracking_difficulty': 4,
       'sneaking_difficulty': 2,
       'size': 0,
-      'rest': 15,
+      'rest': 100,
       'speed': 1,
+      'fights': false,
+      'loot': [
+        {name: 'Rabbit Pelt', q: 1, value: 10},
+        {name: 'Rabbit Foot', q: 1, value: 25}
+      ]
     },
     {
       'name': 'Deer',
@@ -21,7 +26,9 @@ Object.assign(GAME_DATA, {
       'sneaking_difficulty': 8,
       'size': 2,
       'rest': 5,
-      'speed': 3
+      'speed': 3,
+      'fights': false,
+      'loot': [{name: 'Deer Pelt', q: 1, value: 50}]
     },
     {
       'name': 'Wolf',
@@ -31,6 +38,8 @@ Object.assign(GAME_DATA, {
       'size': 1,
       'rest': 15,
       'speed': 3,
+      'fights': true,
+      'loot': [{name: 'Wolf Pelt', q: 1, value: 100}]
     },
   ],
   'tracking_cost': 10,
@@ -85,7 +94,7 @@ export function track() {
     }
 
     GAME_STATE['sneak_msg'] = `You tracked the ${animal.name}.`;
-    GAME_STATE['animal'] = animal;
+    GAME_STATE['animal'] = Object.assign({}, animal);
     GAME_STATE['animal_stats'] = {
       'hp': animal.base_hp,
       'distance': 100,
@@ -207,8 +216,13 @@ export function sneak() {
             GAME_STATE['view'] = 'chase';
           }
         } else {
-          GAME_STATE['track_msg'] = `You missed the ${animal.name}.`;
-          GAME_STATE['view'] = 'hunt';
+          if (animal.fights) {
+            GAME_STATE['msg'] = `The ${animal.name} is aggressive.`;
+            GAME_STATE['view'] = 'battle';
+          } else {
+            GAME_STATE['track_msg'] = `You missed the ${animal.name}.`;
+            GAME_STATE['view'] = 'hunt';
+          }
         }
       }
     }
@@ -219,13 +233,11 @@ export function sneak() {
   let sneakProb = _.skillSuccessRate(
       GAME_STATE['sneaking_skill'] * (1 + distance / 10),
       animal['sneaking_difficulty']);
-
-  template_data['sneak_prob'] = {
-    str: sneakProb,
-    fn: function() {
-      return sneakingOutcome(animal, sneakProb);
-    }
+  template_data['sneak_prob'] = function() {
+    return sneakingOutcome(animal, sneakProb);
   };
+
+  template_data['prob'] = {str: sneakProb, fn: template_data['sneak_prob']};
   template_data['distance'] = distance.toString();
 
   template_data['animal_matrix'] = [''];
@@ -311,7 +323,6 @@ export function chase() {
     }
   };
   template_data['leave'] = function() {
-    console.log('leave...');
     GAME_STATE['view'] = 'hunt';
   };
 
@@ -326,11 +337,98 @@ export function loot() {
   template_data['leave'] = function() {
     GAME_STATE['view'] = 'hunt';
   };
+
+  let items = [];
+  for (let item of animal.loot) {
+    item['fn'] = function() {
+      if (_.acquireItem(item)) {
+        animal.loot = animal.loot.filter(_item => _item !== item);
+      } else {
+        GAME_STATE['msg'] = `The inventory is full.`;
+      }
+    };
+    items.push(item);
+  }
+  template_data['items'] = items;
   return template_data;
 }
 
-console.log('Adding');
+export function battle() {
+  let data = {};
+
+  GAME_STATE['enemy1_pos'] = [2, 2];
+  let wolf = ['--==NO=', '  L L  '];
+  function updateLoop() {
+    GAME_STATE['enemy1']['atk_bar']++;
+    if (GAME_STATE['enemy1']['atk_bar'] == 12) {
+      console.log('Attack');
+      GAME_STATE['enemy1']['atk_bar'] = 0;
+    }
+    GAME_STATE['druid']['atk_bar']++;
+    GAME_STATE['druid']['atk_bar'] = Math.min(GAME_STATE['druid']['atk_bar'], 12);
+
+    if (_.rollD(5) != 5) {
+      return;
+    }
+    let dirX = _.rollD(3) - 2;
+    let dirY = _.rollD(3) - 2;
+    GAME_STATE['enemy1_pos'][0] += dirX;
+    GAME_STATE['enemy1_pos'][1] += dirY;
+    GAME_STATE['enemy1_pos'][0] = Math.max(0, GAME_STATE['enemy1_pos'][0]);
+    GAME_STATE['enemy1_pos'][1] = Math.max(0, GAME_STATE['enemy1_pos'][1]);
+    GAME_STATE['enemy1_pos'][0] = Math.min(4, GAME_STATE['enemy1_pos'][0]);
+    GAME_STATE['enemy1_pos'][1] = Math.min(2, GAME_STATE['enemy1_pos'][1]);
+  }
+  updateLoop();
+
+  clearTimeout(GAME_STATE['refresh']);
+  GAME_STATE['refresh'] = setTimeout(function() {
+    run();
+  }, 100);
+
+  data['enemy1_matrix'] = [];
+  for (let y = 0; y < 5; y++) {
+    data['enemy1_matrix'].push('');
+    for (let x = 0; x < 13; x++) {
+      data['enemy1_matrix'][y] += '.';
+    }
+  }
+
+  let [startY, startX] = GAME_STATE['enemy1_pos'];
+  for (let y = 0; y < wolf.length; y++) {
+    for (let x = 0; x < wolf[y].length; x++) {
+      if (startY + y < data['enemy1_matrix'].length &&
+          startX + x < data['enemy1_matrix'][0].length) {
+        let row = data['enemy1_matrix'][startY + y].split('');
+        row[startX + x] = wolf[y][x];
+        data['enemy1_matrix'][startY + y] = row.join('');
+      }
+    }
+  }
+  data['enemy1_atk_bar'] = "=" + "=".repeat(GAME_STATE['enemy1']['atk_bar']);
+  data['enemy1_hp'] = GAME_STATE['enemy1']['hp'];
+
+  data['druid_atk_bar'] = "=" + "=".repeat(GAME_STATE['druid']['atk_bar']);
+  data['atk'] = function () {
+    if (GAME_STATE['druid']['atk_bar'] == 12) {
+      GAME_STATE['druid']['atk_bar'] = 0;
+      let roll = GAME_STATE['sword_skill'] + _.rollD(20);
+      console.log(roll);
+      console.log(GAME_STATE['enemy1']['ac']);
+      if (roll >= GAME_STATE['enemy1']['ac']) {
+        let dmg = GAME_STATE['sword']['damage'];
+        GAME_STATE['enemy1']['hp'] -= dmg;
+        GAME_STATE['msg'] = `(${roll}) You hit the wolf for ${dmg} HP.`;
+      } else {
+        GAME_STATE['msg'] = `(${roll}) You missed the wolf.`;
+      }
+    }
+  };
+  return data;
+}
+
 renderer.models['hunt'] = track;
 renderer.models['sneak'] = sneak;
 renderer.models['chase'] = chase;
 renderer.models['loot'] = loot;
+renderer.models['battle'] = battle;

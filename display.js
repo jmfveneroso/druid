@@ -54,7 +54,6 @@ export function printScreen(druid, isBrowser, handleClick) {
   const screen = createScreen(views.SCREEN_WIDTH, views.SCREEN_HEIGHT);
 
   // views.displayScore(druid, screen, 1, 1);
-  console.log(druid.gameState);
 
   let lft = 1;
   let top = 1;

@@ -1,5 +1,7 @@
 <<< stats
---- @hours@Gold: @gold @Stamina: @stamina@ 
+@onclick go_to_inventory
+@hours@Gold: @gold @Stamina: @stamina@ 
+@endonclick
 >>> stats
 
 <<< log
@@ -62,13 +64,23 @@ XXXX
 
 <<< btn
 @onclick shoot_fn
-+------+
-+      +
-+      +
-+      +
-+------+
++-------+
++       +
++       +
++       +
++-------+
 @endonclick
 >>> btn
+
+<<< snk
+@onclick sneak_prob
++-------+
++ SNEAK +
++       +
++ @prob@+
++-------+
+@endonclick
+>>> snk
 
 <<< sneak
 @template stats
@@ -77,19 +89,17 @@ XXXX
 + @msg                               @ +
 ++++++++++++++++++++++++++++++++++++++++
 
-SNEAK: @sneak_prob      @
-
-%box shoot                  %  %box btn %
-%                           %  %        %
-%                           %  %        %
-%                           %  %        %
-%                           %  %        ;
+%box shoot                  %  %box btn  %
+%                           %  %         %
+%                           %  %         %
+%                           %  %         %
+%                           %  %         ;
 %                           %  
-%                           %  
-%                           %  
-%                           %  
-%                           %  
-%                           %  
+%                           %  %box snk  %
+%                           %  %         %
+%                           %  %         %
+%                           %  %         %
+%                           %  %         ;
 %                           %  
 %                           %  
 %                           %  
@@ -103,6 +113,16 @@ SNEAK: @sneak_prob      @
 ++++++++++++++++++++++++++++++++++++++++
 + @msg                               @ +
 ++++++++++++++++++++++++++++++++++++++++
+
++--------------------------------------+
+| LOOT                                 |
++-------+------------------+-----------+
+@forv i in items
+@onclick i.fn
+| @i.q@ | @i.name        @ | @i.value@ |
+@endonclick
+@endforv
++-------+------------------+-----------+
 
 @onclick leave
 +--------------------------------------+
@@ -119,3 +139,87 @@ SNEAK: @sneak_prob      @
 +--------------------------------------+
 @endonclick
 >>> chase
+
+<<< druid
+@template stats
+
+@druid.name                            @
+
++-----------------------------------------------+
+| INVENTORY                                     |
++-------+------------------+-----------+--------+
+@forv i in inventory
+| @i.q@ | @i.name        @ | @i.value@ | @i.w @ |
+@endforv
++-------+------------------+-----------+--------+
+| Weight: @weight @                             |
++-----------------------------------------------+
+
+@onclick leave
++-----------------------------------------------+
+|                 LEAVE                         |
++-----------------------------------------------+
+@endonclick
+>>> druid
+
+<<< enemy1
+@matrix enemy1_matrix
+@enemy1_atk_bar
+@enemy1_hp
+>>> enemy1
+
+<<< enemy2
+
+>>> enemy2
+
+<<< enemy3
+
+>>> enemy3
+
+<<< atk
+@onclick atk
+++++++++++
++ ATK    +
++        +
+++++++++++
+@endonclick
+>>> atk
+
+<<< rng
+++++++++++
++ RNG    +
++        +
+++++++++++
+>>> rng
+
+<<< esc
+++++++++++
++ ESCAPE +
++        +
+++++++++++
+>>> esc
+
+<<< battle
+@template stats
+
+%box enemy1 %  %box enemy2 %  %box enemy3 %
+%           %  %           %  %           %
+%           %  %           %  %           %
+%           %  %           %  %           %
+%           %  %           %  %           %
+%           %  %           %  %           %
+%           ;  %           ;  %           ;
+
+
+
+@druid_atk_bar
+%box atk   %  %box rng   %  %box esc   %
+%          %  %          %  %          %
+%          %  %          %  %          %
+%          ;  %          ;  %          ;
+
++++++++++++++++++++++++++++++++++++++++++++
++ @msg                                  @ +
++++++++++++++++++++++++++++++++++++++++++++
+
+>>> battle

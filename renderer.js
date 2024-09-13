@@ -43,6 +43,25 @@ export class TemplateReader {
     return value;
   }
 
+  getVar(var_name, data) {
+    let value = undefined;
+    if (var_name.includes(".")) {
+      let keys = var_name.split('.');
+      value = data[keys[0]];
+      if (value === undefined) {
+        value = GAME_STATE[keys[0]];
+      }
+      keys = keys.slice(1);
+      value = keys.reduce((acc, key) => acc[key], value);
+    } else {
+      value = data[var_name];
+      if (value === undefined) {
+        value = GAME_STATE[var_name];
+      }
+    }
+    return value;
+  }
+
   replaceVar(line, j, data) {
     let var_name = '';
     let k = j + 1;
@@ -57,13 +76,12 @@ export class TemplateReader {
     let max_length = var_name.length + 2;
 
     var_name = var_name.trim();
+    
+    
+    let value = this.getVar(var_name, data);
 
-    let value = data[var_name];
     if (value === undefined) {
-      value = GAME_STATE[var_name];
-      if (value === undefined) {
-        return k;
-      }
+      return k;
     }
 
     let fn = undefined;
@@ -72,6 +90,9 @@ export class TemplateReader {
       value = value.str;
     } 
     value = this.getValue(value);
+    if (value === undefined) {
+      value = '';
+    }
 
     let text = value.slice(0, max_length).padEnd(max_length);
     this.writeToScreen(j, text, fn);
@@ -90,7 +111,7 @@ export class TemplateReader {
   }
 
   processForV(lines, i, data) {
-    let [, name, , list_name] = lines[i].split(' ');
+    let [, name, ,list_name] = lines[i].split(' ');
 
     let subLines = [];
     let opening_fors = 0;
@@ -121,9 +142,11 @@ export class TemplateReader {
         break;
       }
     }
+    
+    let value = this.getVar(list_name, data);
 
-    for (let j = 0; j < data[list_name].length; j++) {
-      let iterator = data[list_name][j];
+    for (let j = 0; j < value.length; j++) {
+      let iterator = value[j];
       data[name] = iterator;
       this.processTemplateInternal(subLines, data);
       delete data[name];
@@ -179,7 +202,7 @@ export class TemplateReader {
 
   processOnClick(line, data) {
     let [, var_name] = line.split(' ');
-    this.onclick = data[var_name];
+    this.onclick = this.getVar(var_name, data);
   }
 
   processEndOnClick(line, data) {
@@ -203,6 +226,7 @@ export class TemplateReader {
       let char = this.buffer[i][x + width - 1][0];
       if (char === ';') {
         height = i - y + 1;
+        break;
       }
     }
 
@@ -255,7 +279,7 @@ export class TemplateReader {
             this.processEndOnClick(line, data);
             break;
           default:
-            this.writeToScreen(0, line);
+            this.processTextLine(line, data);
             this.current_line++;
             break;
         }
@@ -335,6 +359,10 @@ export class Renderer {
 
     if (this.models[template_name]) {
       data = this.models[template_name](data, this.counter);
+    }
+    
+    if (this.views[template_name] === undefined) {
+      console.log(template_name + " does not exist.")
     }
 
     const lines = this.views[template_name].split('\n');
