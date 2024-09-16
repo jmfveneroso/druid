@@ -1,15 +1,15 @@
 <<< stats
 @onclick go_to_inventory
-@hours@Gold: @gold @Stamina: @stamina@ 
+@hours-@ Gold: @gold-@ Stamina: @stamina-@ HP: @druid.hp-@
 @endonclick
 >>> stats
 
 <<< log
-+-----------------------------+
++--------------------------------------------+
 @forv line in lines
-| @line                     @ |
+| @line                                    @ |
 @endforv
-+-----------------------------+
++--------------------------------------------+
 >>> log
 
 <<< track_animal
@@ -46,14 +46,6 @@ ZZZZ
 # @def {dwadwdawd: 12, dwadwa: 13, ddwadw: 14}
 @template log msg
 # @enddef
-
-  %box xxx   %  %box yyy   %
-  %          %  %          %
-  %          %  %          %
-  %          %  %          %
-  %          ;  %          ;
-
-XXXX
 
 >>> hunt
 
@@ -164,8 +156,7 @@ XXXX
 
 <<< enemy1
 @matrix enemy1_matrix
-@enemy1_atk_bar
-@enemy1_hp
+HP: @enemy1.hp
 >>> enemy1
 
 <<< enemy2
@@ -185,22 +176,19 @@ XXXX
 @endonclick
 >>> atk
 
-<<< rng
+<<< rest
+@onclick rest
 ++++++++++
-+ RNG    +
++ REST   +
 +        +
 ++++++++++
->>> rng
-
-<<< esc
-++++++++++
-+ ESCAPE +
-+        +
-++++++++++
->>> esc
+@endonclick
+>>> rest
 
 <<< battle
 @template stats
+
+(@battle_state-@)==@turns                                    @
 
 %box enemy1 %  %box enemy2 %  %box enemy3 %
 %           %  %           %  %           %
@@ -212,14 +200,15 @@ XXXX
 
 
 
-@druid_atk_bar
-%box atk   %  %box rng   %  %box esc   %
-%          %  %          %  %          %
-%          %  %          %  %          %
-%          ;  %          ;  %          ;
+%box atk    %  %box rest   %
+%           %  %           %
+%           %  %           %
+%           ;  %           ;
 
-+++++++++++++++++++++++++++++++++++++++++++
-+ @msg                                  @ +
-+++++++++++++++++++++++++++++++++++++++++++
+@template log battle_msg
 
 >>> battle
+
+<<< game_over
+GAME OVER
+>>> game_over

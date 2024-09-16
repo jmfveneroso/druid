@@ -7,9 +7,15 @@ export class TemplateReader {
     this.buffer = this.createBuffer(100, 100);
     this.max_width = 0;
     this.max_height = 0;
+    this.current_char = 0;
     this.current_line = 0;
     this.counter = renderer.counter;
     this.onclick = undefined;
+  }
+
+  increaseLine(increase) {
+    this.current_line += increase;
+    this.current_char = 0;
   }
 
   createBuffer(width, height) {
@@ -22,7 +28,8 @@ export class TemplateReader {
     this.max_height = Math.max(y + 1, this.max_height);
   }
 
-  writeToScreen(x, text, fn = undefined) {
+  writeToScreen(text, fn = undefined) {
+    let x = this.current_char;
     let y = this.current_line;
     for (let i = 0; i < text.length; i++) {
       if (x + i >= 0 && x + i < 100 && y >= 0 && y < 100) {
@@ -32,6 +39,7 @@ export class TemplateReader {
         this.writeToBuffer(x + i, y, [text[i], {type: 'FN', fn: fn}]);
       }
     }
+    this.current_char += text.length;
   }
 
   getValue(value) {
@@ -63,10 +71,15 @@ export class TemplateReader {
   }
 
   replaceVar(line, j, data) {
+    let pad = true;
     let var_name = '';
     let k = j + 1;
     for (; k < line.length; k++) {
       let char = line[k];
+      if (char === '-') {
+        pad = false;
+        continue;
+      }
       if (char === '@') {
         break;
       }
@@ -94,8 +107,14 @@ export class TemplateReader {
       value = '';
     }
 
-    let text = value.slice(0, max_length).padEnd(max_length);
-    this.writeToScreen(j, text, fn);
+    if (pad) {
+      let text = value.slice(0, max_length).padEnd(max_length);
+      this.writeToScreen(text, fn);
+      return k;
+    }
+    
+    let text = value.slice(0, max_length);
+    this.writeToScreen(text, fn);
     return k;
   }
 
@@ -106,7 +125,7 @@ export class TemplateReader {
         j = this.replaceVar(line, j, data);
         continue;
       }
-      this.writeToScreen(j, char);
+      this.writeToScreen(char);
     }
   }
 
@@ -160,7 +179,7 @@ export class TemplateReader {
     reader.renderTemplate(lines, data);
 
     this.buffer = reader.writeBuffer(this.buffer, 0, this.current_line);
-    this.current_line += reader.max_height;
+    this.increaseLine(reader.max_height);
 
     this.max_width = Math.max(reader.max_width + 1, this.max_width);
     this.max_height = Math.max(this.current_line, this.max_height + 1);
@@ -171,12 +190,12 @@ export class TemplateReader {
 
     let data_point = data;
     if (data_name !== undefined) {
-      data_point = data[data_name];
+      data_point = this.getVar(data_name, data);
     }
 
     let reader = this.renderer.renderTemplate(
         this.buffer, 0, this.current_line, template_name, data_point);
-    this.current_line += reader.max_height;
+    this.increaseLine(reader.max_height);
 
     this.max_width = Math.max(reader.max_width + 1, this.max_width);
     this.max_height = Math.max(this.current_line, this.max_height);
@@ -195,8 +214,8 @@ export class TemplateReader {
     let matrix = data[var_name];
 
     for (let text of matrix) {
-      this.writeToScreen(0, text);
-      this.current_line++;
+      this.writeToScreen(text);
+      this.increaseLine(+1);
     }
   }
 
@@ -246,7 +265,7 @@ export class TemplateReader {
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i];
       if (line.length == 0) {
-        this.current_line++;
+        this.increaseLine(+1);
         this.max_height = Math.max(this.current_line + 1, this.max_height);
         continue;
       }
@@ -280,14 +299,14 @@ export class TemplateReader {
             break;
           default:
             this.processTextLine(line, data);
-            this.current_line++;
+            this.increaseLine(+1);
             break;
         }
         continue;
       }
 
       this.processTextLine(line, data);
-      this.current_line++;
+      this.increaseLine(+1);
     }
     this.renderBoxes(data);
   }

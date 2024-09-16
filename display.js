@@ -2,6 +2,7 @@ import * as views from './views.js';
 import {GAME_STATE} from './data.js';
 import {renderer} from './renderer.js';
 import * as hunt from './hunt.js';
+import * as battle from './battle.js';
 
 function createScreen(width, height) {
   return Array.from({length: height}, () => Array(width).fill(' '));

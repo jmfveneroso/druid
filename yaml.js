@@ -60,9 +60,25 @@ export function acquireItem(item) {
   return true;
 }
 
+function splitByLength(str, maxChars) {
+  let result = [];
+  let start = 0;
 
-export function scrollable(text, counter) {
-  let lines = text.split(' ');
+  while (start < str.length) {
+    result.push(str.slice(start, start + maxChars));
+    start += maxChars;
+  }
+
+  return result;
+}
+
+export function scrollable(lines, counter) {
+  console.log(lines);
+  console.log(counter);
+
+  if (typeof lines === 'string') {
+    lines = splitByLength(lines, 40);
+  }
 
   let max_lines = 3;
 

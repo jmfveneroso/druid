@@ -47,14 +47,7 @@ export let GAME_STATE = {
     'items':
         [{name: 'Tent', q: 1, value: 100}, {name: 'Waterskin', q: 1, value: 5}],
     'max_weight': 100,
-    'atk_bar': 0,
-    'load_speed': 0.3,
   },
-  'enemy1': {
-    'hp': 10,
-    'atk_bar': 0,
-    'ac': 12,
-  }
 };
 
 export let TEMP = {};
