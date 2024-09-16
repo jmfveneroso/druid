@@ -1,6 +1,6 @@
-import {renderer} from './renderer.js';
+import {GAME_DATA, GAME_STATE, TEMP} from './data.js';
 import {run} from './main.js';
-import {GAME_STATE, GAME_DATA, TEMP} from './data.js';
+import {renderer} from './renderer.js';
 
 export function writeTemp(name, value, counter) {
   TEMP[name + '_' + counter] = value;
@@ -15,7 +15,7 @@ export function roll(difficulty) {
 }
 
 export function rollD(dSize) {
- return Math.floor(Math.random() * dSize) + 1;
+  return Math.floor(Math.random() * dSize) + 1;
 }
 
 export function skillSuccessRate(skill, base_difficulty) {
@@ -60,6 +60,91 @@ export function acquireItem(item) {
   return true;
 }
 
+export function consumeItem(item_name) {
+  for (let _item of GAME_STATE['druid']['items']) {
+    if (_item['name'] == item_name) {
+      _item['q']--;
+      if (_item['q'] === 0) {
+        GAME_STATE['druid']['items'] = GAME_STATE['druid']['items'].filter(
+            item => item.name !== item_name);
+        return true;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+export function getItemQuantity(item_name) {
+  for (let _item of GAME_STATE['druid']['items']) {
+    if (_item['name'] == item_name) {
+      return _item['q'];
+    }
+  }
+  return 0;
+}
+
+export function pushView(view_name) {
+  GAME_STATE['views'].push(view_name);
+}
+
+export function popAndPushView(view_name) {
+  GAME_STATE['views'].pop();
+  GAME_STATE['views'].push(view_name);
+}
+
+export function popView(view_name) {
+  if (GAME_STATE['views'].length > 1) {
+    GAME_STATE['views'].pop();
+  }
+}
+
+export function addMessage(msg) {
+  GAME_STATE['msg'] = [msg].concat(GAME_STATE['msg']);
+}
+
+export function clearMessages() {
+  GAME_STATE['msg'] = [];
+}
+
+export function addTime(addTime) {
+  let timeString = GAME_STATE['hours'];
+
+  let [dayPart, timePart] = timeString.split(' ');
+  let day = parseInt(dayPart.slice(1));
+
+  let [currentHours, currentMinutes] = timePart.split(':').map(Number);
+
+  let [addHours, addMinutes] = addTime.split(':').map(Number);
+
+  let newMinutes = currentMinutes + addMinutes;
+  let extraHours = Math.floor(newMinutes / 60);
+  newMinutes = newMinutes % 60;
+
+  let newHours = currentHours + addHours + extraHours;
+  let extraDays = Math.floor(newHours / 24);
+  newHours = newHours % 24;
+
+  let newDay = day + extraDays;
+
+  let formattedTime = `${newHours}:${newMinutes.toString().padStart(2, '0')}`;
+
+  GAME_STATE['hours'] = `#${newDay} ${formattedTime}`;
+}
+
+export function setTimeNextDay(newTime) {
+  let timeString = GAME_STATE['hours'];
+
+  let [dayPart, timePart] = timeString.split(' ');
+  let day = parseInt(dayPart.slice(1));  // Get the day number
+
+  let newDay = day + 1;
+
+  GAME_STATE['hours'] = `#${newDay} ${newTime}`;
+}
+
+export function addHours(hours) {}
+
 function splitByLength(str, maxChars) {
   let result = [];
   let start = 0;
@@ -73,9 +158,6 @@ function splitByLength(str, maxChars) {
 }
 
 export function scrollable(lines, counter) {
-  console.log(lines);
-  console.log(counter);
-
   if (typeof lines === 'string') {
     lines = splitByLength(lines, 40);
   }
@@ -112,16 +194,27 @@ export function scrollable(lines, counter) {
 }
 
 export function stats(data) {
-  data['go_to_inventory'] = function () {
-    GAME_STATE['view'] = 'druid';
-  }
+  data['inventory_click'] = {
+    str: '[INV]',
+    fn: function() {
+      pushView('druid');
+    }
+  };
+  data['leave'] = {
+    str: '[LEAVE]',
+    fn: function() {
+      GAME_STATE['view'] = 'druid';
+      popView();
+    }
+  };
   return data;
 }
 
 export function druid(data) {
   let weight = getCurrentWeight();
   data['weight'] = weight;
-  data['leave'] = function () {
+  data['leave'] =
+      function() {
     GAME_STATE['view'] = 'hunt';
   }
 

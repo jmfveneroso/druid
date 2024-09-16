@@ -6,6 +6,7 @@ export let GAME_DATA = {
     'Rabbit Foot': {q: 1, value: 10, weight: 1},
     'Deer Pelt': {q: 1, value: 50, weight: 10},
     'Wolf Pelt': {q: 1, value: 100, weight: 5},
+    'Ration': {q: 1, value: 10, weight: 1},
   },
   'enemies': {
     'wolf': {
@@ -17,10 +18,11 @@ export let GAME_DATA = {
       'loot': [{name: 'Wolf Pelt', q: 1, value: 100}]
     },
   },
+  'encounter_prob': 0.2,
 };
 
 export let GAME_STATE = {
-  'view': 'hunt',
+  'views': ['forest'],
   'current_env': {
     'population': {
       'Rabbit': 100,
@@ -39,13 +41,15 @@ export let GAME_STATE = {
   'sword': {
     'damage': 2,
   },
-  'hours': '8:00',
+  'hours': '#1 8:00',
   'gold': 100,
   'stamina': 100,
   'druid': {
     'name': 'Lianna Starsong',
-    'items':
-        [{name: 'Tent', q: 1, value: 100}, {name: 'Waterskin', q: 1, value: 5}],
+    'items': [
+      {name: 'Tent', q: 1, value: 100}, {name: 'Waterskin', q: 1, value: 5},
+      {name: 'Ration', q: 3, value: 5}
+    ],
     'max_weight': 100,
   },
 };

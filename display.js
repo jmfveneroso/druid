@@ -100,7 +100,8 @@ export function printScreen(druid, isBrowser, handleClick) {
       break;
     case 'HUNT':
       renderer.counter = 0;
-      renderer.renderTemplate(screen, lft, top, GAME_STATE["view"]);
+      let game_views = GAME_STATE["views"];
+      renderer.renderTemplate(screen, lft, top, game_views[game_views.length - 1]);
       break;
     default:
       break;

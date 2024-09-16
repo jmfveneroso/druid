@@ -387,6 +387,9 @@ export class Druid {
   }
 
   move(x, y) {
+    this.setState('HUNT');
+    return;
+
     if (!this.map.moveDruid(x, y)) {
       return;
     }

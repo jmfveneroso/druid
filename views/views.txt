@@ -1,7 +1,6 @@
 <<< stats
-@onclick go_to_inventory
-@hours-@ Gold: @gold-@ Stamina: @stamina-@ HP: @druid.hp-@
-@endonclick
+@hours   -@ Gold: @gold-@ Stamina: @stamina-@ HP: @druid.hp-@ 
+@inventory_click-@ @leave-@
 >>> stats
 
 <<< log
@@ -13,39 +12,39 @@
 >>> log
 
 <<< track_animal
+@onclick fn
 +--------------------------------------+
 | @name             @ | @prob        @ |
 +--------------------------------------+
+@endonclick
 >>> track_animal
 
-<<< xxx
-XXX @ msg   @
-XXX
-XXXXXXXQQQQQQQQQQQQ
-XXX
->>> xxx
+<<< forest
+@template stats
 
-<<< yyy
+@onclick hunt
++-----------------------------+
+| HUNT                        |
++-----------------------------+
+@endonclick
 
-ZZZZ 
-ZZZZ
+@onclick camp
++-----------------------------+
+| CAMP                        |
++-----------------------------+
+@endonclick
 
->>> yyy
+@template log msg
+>>> forest
 
 <<< hunt
 @template stats
-
-++++++++++++++++++++++++++++++++++++++++
-+ @msg                               @ +
-++++++++++++++++++++++++++++++++++++++++
 
 @forv a in animals         @
 @template track_animal a   @
 @endforv                   @
 
-# @def {dwadwdawd: 12, dwadwa: 13, ddwadw: 14}
 @template log msg
-# @enddef
 
 >>> hunt
 
@@ -77,10 +76,6 @@ ZZZZ
 <<< sneak
 @template stats
 
-++++++++++++++++++++++++++++++++++++++++
-+ @msg                               @ +
-++++++++++++++++++++++++++++++++++++++++
-
 %box shoot                  %  %box btn  %
 %                           %  %         %
 %                           %  %         %
@@ -99,13 +94,11 @@ ZZZZ
 %                           %  
 %                           ;  
 
+@template log msg
+
 >>> sneak
 
 <<< loot
-++++++++++++++++++++++++++++++++++++++++
-+ @msg                               @ +
-++++++++++++++++++++++++++++++++++++++++
-
 +--------------------------------------+
 | LOOT                                 |
 +-------+------------------+-----------+
@@ -116,18 +109,13 @@ ZZZZ
 @endforv
 +-------+------------------+-----------+
 
-@onclick leave
-+--------------------------------------+
-| LEAVE                                |
-+--------------------------------------+
+@template log msg
+
 >>> loot
 
 <<< chase
 +--------------------------------------+
 | CHASE               | @prob        @ |
-+--------------------------------------+
-@onclick leave
-| LEAVE                                |
 +--------------------------------------+
 @endonclick
 >>> chase
@@ -147,11 +135,6 @@ ZZZZ
 | Weight: @weight @                             |
 +-----------------------------------------------+
 
-@onclick leave
-+-----------------------------------------------+
-|                 LEAVE                         |
-+-----------------------------------------------+
-@endonclick
 >>> druid
 
 <<< enemy1
@@ -208,6 +191,22 @@ HP: @enemy1.hp
 @template log battle_msg
 
 >>> battle
+
+<<< camp
+@template stats
+
+@onclick rest
++-------------------------------------+
+|               REST                  |
++-------------------------------------+
+@endonclick
+
++-------------------------------------+
+| Rations: @rations                 @ |
++-------------------------------------+
+
+@template log msg
+>>> camp
 
 <<< game_over
 GAME OVER
