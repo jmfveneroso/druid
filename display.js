@@ -29,7 +29,7 @@ function renderScreen(druid, screen, isBrowser, handleClick) {
         charElement.setAttribute('data-col', colIndex);
 
         charElement.addEventListener('click', function() {
-          handleClick(druid, fn);
+          handleClick(druid, fn, colIndex, rowIndex);
         });
 
         charElement.addEventListener('mouseover', function() {

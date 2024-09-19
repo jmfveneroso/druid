@@ -7,6 +7,8 @@ export let GAME_DATA = {
     'Deer Pelt': {q: 1, value: 50, weight: 10},
     'Wolf Pelt': {q: 1, value: 100, weight: 5},
     'Ration': {q: 1, value: 10, weight: 1},
+    'Arrows': {q: 1, value: 1, weight: 1},
+    'Health Potion': {q: 1, value: 30, weight: 2},
   },
   'enemies': {
     'wolf': {
@@ -44,14 +46,22 @@ export let GAME_STATE = {
   'hours': '#1 8:00',
   'gold': 100,
   'stamina': 100,
+  'max_stamina': 100,
   'druid': {
     'name': 'Lianna Starsong',
     'items': [
       {name: 'Tent', q: 1, value: 100}, {name: 'Waterskin', q: 1, value: 5},
-      {name: 'Ration', q: 3, value: 5}
+      {name: 'Ration', q: 3, value: 5}, {name: 'Arrows', q: 20, value: 1}, 
     ],
     'max_weight': 100,
+    'position': { 'x': 1, 'y': 1 },
   },
+  'market': {
+    'items': [
+      {name: 'Ration', q: 0, value: 5},
+      {name: 'Health Potion', q: 0, value: 5}
+    ],
+  }
 };
 
 export let TEMP = {};

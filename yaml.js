@@ -43,15 +43,19 @@ export function getCurrentWeight() {
   return weight;
 }
 
-export function acquireItem(item) {
-  let addedWeight = getItemWeight(item.name) * item.q;
+export function acquireItem(item, quantity) {
+  if (quantity === undefined) {
+    quantity = item.q;
+  }
+
+  let addedWeight = getItemWeight(item.name) * quantity;
   if (getCurrentWeight() + addedWeight > GAME_STATE['druid']['max_weight']) {
     return false;
   }
 
   for (let _item of GAME_STATE['druid']['items']) {
     if (_item['name'] == item.name) {
-      _item['q'] += item.q;
+      _item['q'] += quantity;
       return true;
     }
   }
@@ -143,7 +147,17 @@ export function setTimeNextDay(newTime) {
   GAME_STATE['hours'] = `#${newDay} ${newTime}`;
 }
 
-export function addHours(hours) {}
+export function spendGold(cost) {
+  if (GAME_STATE['gold'] >= cost) {
+    GAME_STATE['gold'] -= cost;
+    return true;
+  }
+  return false;
+}
+
+export function earnGold(gold) {
+  GAME_STATE['gold'] += gold;
+}
 
 function splitByLength(str, maxChars) {
   let result = [];
@@ -160,6 +174,10 @@ function splitByLength(str, maxChars) {
 export function scrollable(lines, counter) {
   if (typeof lines === 'string') {
     lines = splitByLength(lines, 40);
+  }
+
+  if (!Array.isArray(lines) || lines.length === 0) {
+    lines = ['...'];
   }
 
   let max_lines = 3;
@@ -194,29 +212,51 @@ export function scrollable(lines, counter) {
 }
 
 export function stats(data) {
-  data['inventory_click'] = {
-    str: '[INV]',
+  let bar_size = 16;
+  let stamina_percent = GAME_STATE['stamina'] / GAME_STATE['max_stamina'];
+  let s = parseFloat(GAME_STATE['stamina']).toFixed(0);
+  data['stamina_bar'] = '|' +
+      '*'.repeat(stamina_percent * bar_size).padEnd(bar_size) + '| ' + s;
+
+  s = parseFloat(GAME_STATE['druid']['hp']).toFixed(0);
+  let hp_percent = GAME_STATE['druid']['hp'] / GAME_STATE['druid']['max_hp'];
+
+  let bar = '+'.repeat(hp_percent * bar_size)
+                .padEnd(bar_size)
+                .split('')
+                .reverse()
+                .join('');
+  data['hp_bar'] = s + ' |' + bar + '|';
+
+  data['char_click'] = {
+    str: '[CHA]',
     fn: function() {
       pushView('druid');
     }
   };
-  data['leave'] = {
-    str: '[LEAVE]',
+  data['inventory_click'] = {
+    str: '[INV]',
     fn: function() {
-      GAME_STATE['view'] = 'druid';
+      pushView('inventory');
+    }
+  };
+  data['leave'] = {
+    str: '[--X--]',
+    fn: function() {
       popView();
     }
   };
+
   return data;
 }
 
 export function druid(data) {
+  return data;
+}
+
+export function inventory(data) {
   let weight = getCurrentWeight();
   data['weight'] = weight;
-  data['leave'] =
-      function() {
-    GAME_STATE['view'] = 'hunt';
-  }
 
   let items = [];
   for (let item of GAME_STATE['druid'].items) {
@@ -230,3 +270,4 @@ export function druid(data) {
 renderer.models['log'] = scrollable;
 renderer.models['stats'] = stats;
 renderer.models['druid'] = druid;
+renderer.models['inventory'] = inventory;

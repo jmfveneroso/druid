@@ -2,7 +2,7 @@ import {GAME_DATA, GAME_STATE, TEMP} from './data.js';
 import * as views from './views.js';
 
 export class TemplateReader {
-  constructor(renderer) {
+  constructor(renderer, x, y) {
     this.renderer = renderer;
     this.buffer = this.createBuffer(100, 100);
     this.max_width = 0;
@@ -11,6 +11,8 @@ export class TemplateReader {
     this.current_line = 0;
     this.counter = renderer.counter;
     this.onclick = undefined;
+    this.parent_x = x;
+    this.parent_y = y;
   }
 
   increaseLine(increase) {
@@ -53,7 +55,7 @@ export class TemplateReader {
 
   getVar(var_name, data) {
     let value = undefined;
-    if (var_name.includes(".")) {
+    if (var_name.includes('.')) {
       let keys = var_name.split('.');
       value = data[keys[0]];
       if (value === undefined) {
@@ -89,8 +91,8 @@ export class TemplateReader {
     let max_length = var_name.length + 2;
 
     var_name = var_name.trim();
-    
-    
+
+
     let value = this.getVar(var_name, data);
 
     if (value === undefined) {
@@ -101,7 +103,7 @@ export class TemplateReader {
     if (typeof value === 'object') {
       fn = value.fn;
       value = value.str;
-    } 
+    }
     value = this.getValue(value);
     if (value === undefined) {
       value = '';
@@ -112,7 +114,7 @@ export class TemplateReader {
       this.writeToScreen(text, fn);
       return k;
     }
-    
+
     let text = value.slice(0, max_length);
     this.writeToScreen(text, fn);
     return k;
@@ -130,7 +132,7 @@ export class TemplateReader {
   }
 
   processForV(lines, i, data) {
-    let [, name, ,list_name] = lines[i].split(' ');
+    let [, name, , list_name] = lines[i].split(' ');
 
     let subLines = [];
     let opening_fors = 0;
@@ -161,7 +163,7 @@ export class TemplateReader {
         break;
       }
     }
-    
+
     let value = this.getVar(list_name, data);
 
     for (let j = 0; j < value.length; j++) {
@@ -175,7 +177,9 @@ export class TemplateReader {
   }
 
   processTemplateInternal(lines, data) {
-    let reader = new TemplateReader(this.renderer);
+    let x = this.parent_x;
+    let y = this.parent_y + this.current_line;
+    let reader = new TemplateReader(this.renderer, x, y);
     reader.renderTemplate(lines, data);
 
     this.buffer = reader.writeBuffer(this.buffer, 0, this.current_line);
@@ -202,7 +206,7 @@ export class TemplateReader {
   }
 
   processMatrix(line, data) {
-    let [, var_name] = line.split(' ');
+    let [, var_name, fn_name] = line.split(' ');
 
     var_name = var_name.trim();
 
@@ -211,10 +215,26 @@ export class TemplateReader {
       return;
     }
 
+    let matrix_fn = undefined;
+    if (fn_name !== undefined) {
+      let fn = data[fn_name];
+      let x = this.parent_x;
+      let y = this.parent_y + this.current_line;
+      matrix_fn = function(row, col) {
+        fn(row - x, col - y);
+      };
+    }
+
     let matrix = data[var_name];
 
     for (let text of matrix) {
-      this.writeToScreen(text);
+      for (let c of text) {
+        if (typeof c === 'string') {
+          this.writeToScreen(c, matrix_fn);
+        } else {
+          this.writeToScreen(c[0], c[1]);
+        }
+      }
       this.increaseLine(+1);
     }
   }
@@ -379,13 +399,13 @@ export class Renderer {
     if (this.models[template_name]) {
       data = this.models[template_name](data, this.counter);
     }
-    
+
     if (this.views[template_name] === undefined) {
-      console.log(template_name + " does not exist.")
+      console.log(template_name + ' does not exist.')
     }
 
     const lines = this.views[template_name].split('\n');
-    let reader = new TemplateReader(this);
+    let reader = new TemplateReader(this, x, y);
     this.counter += 1;
 
     reader.renderTemplate(lines, data);

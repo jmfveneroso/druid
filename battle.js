@@ -19,6 +19,7 @@ GAME_STATE['enemy1'] = {
 };
 Object.assign(GAME_STATE['druid'], {
   'hp': 12,
+  'max_hp': 12,
   'ac': 10,
   'init_bonus': 2,
 });
@@ -136,8 +137,9 @@ export function attack() {
     GAME_STATE['enemy1']['took_hit'] = 10;
     addMessage(`(${roll}) You hit the wolf for ${dmg} HP.`);
 
+    console.log();
     if (GAME_STATE['enemy1']['hp'] == 0) {
-      GAME_STATE['view'] = 'loot';
+      _.popAndPushView('loot');
     }
   } else {
     addMessage(`(${roll}) You missed the wolf.`);

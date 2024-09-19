@@ -208,6 +208,10 @@ export function sneak() {
           if (animal['hp'] <= 0) {
             _.addMessage(`You did ${dmg} dmg and killed the ${animal.name}.`);
             _.popAndPushView('loot');
+          } else if (animal.fights) {
+            _.addMessage(`You did ${dmg}, the ${animal.name} fights back.`);
+            _.popAndPushView('battle');
+            GAME_STATE['enemy1']['hp'] = animal['hp'];
           } else {
             _.addMessage(`You did ${dmg}, the ${animal.name} is running.`);
             _.popAndPushView('chase');
@@ -359,6 +363,9 @@ export function forest() {
   };
   template_data['camp'] = function() {
     _.pushView('camp');
+  };
+  template_data['map'] = function() {
+    _.pushView('map');
   };
   return template_data;
 }

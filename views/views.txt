@@ -1,6 +1,9 @@
 <<< stats
-@hours   -@ Gold: @gold-@ Stamina: @stamina-@ HP: @druid.hp-@ 
-@inventory_click-@ @leave-@
+@hours   -@                                Gold: @gold-@ 
+@stamina_bar               @ @hp_bar                 @ 
+@char_click-@ @inventory_click-@                                @leave-@
+          
+                    
 >>> stats
 
 <<< log
@@ -31,6 +34,12 @@
 @onclick camp
 +-----------------------------+
 | CAMP                        |
++-----------------------------+
+@endonclick
+
+@onclick map
++-----------------------------+
+| MAP                         |
 +-----------------------------+
 @endonclick
 
@@ -99,6 +108,8 @@
 >>> sneak
 
 <<< loot
+@template stats
+
 +--------------------------------------+
 | LOOT                                 |
 +-------+------------------+-----------+
@@ -125,6 +136,23 @@
 
 @druid.name                            @
 
+Skills:
+- Sword:    @sword_skill   @
+- Bow:      @bow_skill     @
+- Hunting:  @hunting_skill @
+- Sneaking: @sneaking_skill@
+- Skinning: @skinning_skill@
+
+Weapons:
+- Sword:    +@sword.damage @
+- Bow:      +@bow.damage   @
+
+@template log msg
+>>> druid
+
+<<< inventory
+@template stats
+
 +-----------------------------------------------+
 | INVENTORY                                     |
 +-------+------------------+-----------+--------+
@@ -135,7 +163,8 @@
 | Weight: @weight @                             |
 +-----------------------------------------------+
 
->>> druid
+@template log msg
+>>> inventory
 
 <<< enemy1
 @matrix enemy1_matrix
@@ -207,6 +236,103 @@ HP: @enemy1.hp
 
 @template log msg
 >>> camp
+
+<<< enter
+@onclick enter
+++++++++++
++ ENTER  +
++        +
+++++++++++
+@endonclick
+>>> enter
+
+<<< map
+@template stats
+
+@matrix map_matrix map_fn
+
+
+%box enter  %  %box rest   %
+%           %  %           %
+%           %  %           %
+%           ;  %           ;
+
+@template log msg
+>>> map
+
+<<< village
+@template stats
+
+@village.name    @
+
+@matrix village_matrix
+
+@template log msg
+>>> village
+
+<<< market_buy
+@template stats
+
+++++++++++++++++++++++++++++++++++++++++++++++
++                  MARKET                    +
+++++++++++++++++++++++++++++++++++++++++++++++
+
+@onclick sell
++--------------------------------------------+
+| BUY (CLICK TO SELL)                        |
++------------------------+-----------+-------+
+| Name                   | Value     | Qnty  |
++------------------------+-----------+-------+
+@endonclick
+@forv i in market_items
+@onclick i.buy
+| @i.name              @ | @i.value@ | @i.q@ |
+@endonclick
+@endforv
++------------------------+-----------+-------+
+
+@template log msg
+>>> market_buy
+
+<<< market_sell
+@template stats
+
+++++++++++++++++++++++++++++++++++++++++++++++
++                  MARKET                    +
+++++++++++++++++++++++++++++++++++++++++++++++
+
+@onclick buy
++--------------------------------------------+
+| SELL (CLICK TO BUY)                        |
++------------------------+-----------+-------+
+| Name                   | Value     | Qnty  |
++------------------------+-----------+-------+
+@endonclick
+@forv i in druid_items
+@onclick i.sell
+| @i.name              @ | @i.value@ | @i.q@ |
+@endonclick
+@endforv
++------------------------+-----------+-------+
+
+@template log msg
+>>> market_sell
+
+<<< blacksmith
+@template stats
+
+Blacksmith
+
+@template log msg
+>>> blacksmith
+
+<<< temple
+@template stats
+
+Temple
+
+@template log msg
+>>> temple
 
 <<< game_over
 GAME OVER

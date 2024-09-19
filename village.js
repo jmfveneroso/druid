@@ -1,4 +1,9 @@
+import {GAME_DATA, GAME_STATE, TEMP} from './data.js';
+import {environments} from './environment.js';
+import {run} from './main.js';
 import {Patient} from './patient.js';
+import {renderer} from './renderer.js';
+import * as _ from './yaml.js';
 
 const firstNames = [
   'Aeliana', 'Bran',    'Caius', 'Dara',  'Elara', 'Faelan', 'Gwyn',
@@ -45,10 +50,10 @@ export class VillageMap {
   }
 
   placeCentralSquare() {
-    return this.placeStructureBounded('░', 8, 4, 10, 5, 30, 15);
+    return this.placeStructureBounded(':', 8, 4, 10, 5, 30, 15);
   }
 
-  placeSquareBuilding(char, width, height, x, y, direction) {
+  placeSquareBuilding(char, width, height, x, y, direction, fn) {
     let [offsetX, offsetY, maxX, maxY] = [0, 0, 0, 0];
     if (direction === 0) {
       [offsetX, offsetY, maxX, maxY] = [0, -height, 8, height];
@@ -61,19 +66,20 @@ export class VillageMap {
     }
     x += offsetX;
     y += offsetY;
-    this.placeStructureBounded(char, width, height, x, y, x + maxX, y + maxY);
+    this.placeStructureBounded(
+        char, width, height, x, y, x + maxX, y + maxY, fn);
   }
 
-  placeTemple(x, y, direction) {
-    this.placeSquareBuilding('ฐ', 4, 3, x, y, direction);
+  placeTemple(x, y, direction, fn) {
+    this.placeSquareBuilding('T', 4, 3, x, y, direction, fn);
   }
 
-  placeGraveyard(x, y, direction) {
-    this.placeStructureStrict('±', 5, 3);
+  placeBlacksmith(fn) {
+    this.placeStructureStrict('B', 5, 3, fn);
   }
 
-  placeAlchemyShop(x, y, direction) {
-    this.placeSquareBuilding('╫', 4, 2, x, y, direction);
+  placeMarket(x, y, direction, fn) {
+    this.placeSquareBuilding('M', 4, 2, x, y, direction, fn);
   }
 
   placeFields() {
@@ -92,15 +98,15 @@ export class VillageMap {
 
       villager.houseLoc = [x, y];
       this.drawRect(
-          x, y, 3, 2, '█', {type: 'SELECT_VILLAGER', villager: villager});
+          x, y, 3, 2, 'H', {type: 'SELECT_VILLAGER', villager: villager});
     }
   }
 
   clearMiasmaPatches() {
     for (let i = 0; i < this.height; i++) {
       for (let j = 0; j < this.width; j++) {
-        if (this.grid[i][j] == "⊙" || this.grid[i][j] == "§") {
-          this.grid[i][j] = " ";
+        if (this.grid[i][j] == '$' || this.grid[i][j] == 's') {
+          this.grid[i][j] = ' ';
           this.gridFn[i][j] = undefined;
         }
       }
@@ -109,16 +115,16 @@ export class VillageMap {
 
   placeMiasmaPatches(miasmaPatches) {
     this.village.miasmaPatches.forEach(patch => {
-      let str = Math.ceil(patch.strength/2) + 1;
+      let str = Math.ceil(patch.strength / 2) + 1;
       let [x, y] = this.getStructurePlacement(str, str);
 
       for (let j = y; j < y + str; j++) {
         for (let i = x; i < x + str; i++) {
           let print = (i == x + 1 || j == y + 1) || Math.random() < 0.3;
           if (print) {
-            let symbol = '⊙';
+            let symbol = '$';
             if (Math.random() < 0.3) {
-              symbol = '§';
+              symbol = 's';
             }
             this.grid[j][i] = symbol;
             this.gridFn[j][i] = {type: 'MIASMA_CLICK'};
@@ -128,13 +134,13 @@ export class VillageMap {
     });
   }
 
-  placeStructureBounded(symbol, width, height, x, y, maxX, maxY) {
+  placeStructureBounded(symbol, width, height, x, y, maxX, maxY, fn) {
     let newX, newY;
     for (let i = 0; i < 100; i++) {
       newX = Math.floor(Math.random() * (maxX - x - width));
       newY = Math.floor(Math.random() * (maxY - y - height));
       if (this.canPlaceStructure(x + newX, y + newY, width, height)) {
-        this.drawRect(x + newX, y + newY, width, height, symbol);
+        this.drawRect(x + newX, y + newY, width, height, symbol, fn);
         break;
       }
     }
@@ -159,13 +165,13 @@ export class VillageMap {
     this.drawRect(x, y, width, height, symbol);
   }
 
-  placeStructureStrict(symbol, width, height) {
+  placeStructureStrict(symbol, width, height, fn) {
     let x, y;
     do {
       x = Math.floor(Math.random() * (this.width - width));
       y = Math.floor(Math.random() * (this.height - height));
     } while (!this.canPlaceStructureStrict(x, y, width, height));
-    this.drawRect(x, y, width, height, symbol);
+    this.drawRect(x, y, width, height, symbol, fn);
   }
 
   canPlaceStructure(x, y, width, height) {
@@ -219,58 +225,23 @@ export class VillageMap {
     return [x, y];
   }
 
-  addRoads() {
-    for (let k = 0; k < 15; k++) {
-      let [x1, y1] = this.getOccupiedSquare();
-
-      let [x2, y2] = [x1, y1];
-      do {
-        [x2, y2] = this.getOccupiedSquare();
-      } while (x1 == x2 && y1 == y2);
-
-      let i = x1
-      let j = y1
-      let iInc = x2 > x1 ? 1 : -1;
-      let jInc = y2 > y1 ? 1 : -1;
-      for (; i != x2; i += iInc) {
-        if (this.grid[j][i] == ' ') {
-          if (Math.random() < 0.4) {
-            let symbol = '.';
-            if (Math.random() < 0.2) {
-              symbol = '∙';
-            }
-            this.grid[j][i] = symbol;
-          }
-        }
-      }
-
-      for (; j != y2; j += jInc) {
-        if (this.grid[j][i] == ' ') {
-          if (Math.random() < 0.4) {
-            let symbol = '.';
-            if (Math.random() < 0.2) {
-              symbol = '∙';
-            }
-            this.grid[j][i] = symbol;
-          }
-        }
-      }
-    }
-  }
-
   generateMap(miasmaPatches) {
     let [x, y] = this.placeCentralSquare();
 
     let arr = [0, 1, 2, 3];
     arr = shuffleArray(arr);
 
-    this.placeTemple(x, y, arr[0]);
-    this.placeAlchemyShop(x, y, arr[1]);
-
-    this.placeGraveyard();
+    this.placeTemple(x, y, arr[0], function() {
+      _.pushView('temple');
+    });
+    this.placeMarket(x, y, arr[1], function() {
+      _.pushView('market_buy');
+    });
+    this.placeBlacksmith(function() {
+      _.pushView('blacksmith');
+    });
     this.placeFields();
     this.placeHouses();
-    // this.addRoads();
     this.placeMiasmaPatches(miasmaPatches);
     this.updateMap();
   }
@@ -282,15 +253,15 @@ export class VillageMap {
 
       for (let j = 0; j < 3; j++) {
         if (villager.isDead()) {
-          this.grid[y][x+j] = "±";
+          this.grid[y][x + j] = '±';
         } else if (villager.isCured()) {
-          this.grid[y][x+j] = "H";
+          this.grid[y][x + j] = 'h';
         } else if (villager.isCritical()) {
-          this.grid[y][x+j] = "*";
+          this.grid[y][x + j] = '*';
         } else if (villager.isSick()) {
-          this.grid[y][x+j] = "≠";
+          this.grid[y][x + j] = '≠';
         } else {
-          this.grid[y][x+j] = "█";
+          this.grid[y][x + j] = 'H';
         }
       }
     }
@@ -466,3 +437,89 @@ const village2 = new Village(2);
 const village3 = new Village(2);
 
 export const villages = [village1, village2, village3];
+
+function getVillageMap(village, matrix) {
+  function writeToMatrix(matrix, x, y, text, fn) {
+    for (let i = 0; i < text.length; i++) {
+      if (fn === undefined) {
+        matrix[y][x + i] = text[i];
+      } else {
+        matrix[y][x + i] = [text[i], fn];
+      }
+    }
+  }
+
+  let envSymbol = '.';
+
+  const grid = village.villageMap.grid;
+  const gridFn = village.villageMap.gridFn;
+
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      let symbol = grid[i][j];
+      if (symbol === ' ') {
+        if (Math.random() < 0.05) {
+          symbol = envSymbol;
+        }
+      }
+      let fn = gridFn[i][j];
+      writeToMatrix(matrix, j, i, symbol, fn);
+    }
+  }
+}
+
+function renderVillage() {
+  let data = {};
+  let village = GAME_STATE['village'];
+
+  let matrix = [];
+  for (let i = 0; i < 20; i++) {
+    matrix.push(['$'.repeat(42)]);
+  }
+
+  getVillageMap(village, matrix);
+  data['village_matrix'] = matrix;
+
+  return data;
+}
+
+function marketBuy() {
+  let data = {};
+  data['sell'] = function() {
+    _.popAndPushView('market_sell');
+  };
+
+  data['market_items'] = GAME_STATE['market']['items'];
+  for (let item of data['market_items']) {
+    item['q'] = _.getItemQuantity(item['name']);
+    item['buy'] = function() {
+      if (_.spendGold(item['value'])) {
+        _.acquireItem(item, 1);
+      } else {
+        _.addMessage('You do not have enough gold.');
+      }
+    }
+  }
+  return data;
+}
+
+function marketSell() {
+  let data = {};
+  data['buy'] = function() {
+    _.popAndPushView('market_buy');
+  };
+
+  data['druid_items'] = GAME_STATE['druid']['items'];
+  for (let item of data['druid_items']) {
+    item['sell'] = function() {
+      _.earnGold(item['value']);
+      _.consumeItem(item['name']);
+    }
+  }
+  return data;
+}
+
+renderer.models['village'] = renderVillage;
+
+renderer.models['market_buy'] = marketBuy;
+renderer.models['market_sell'] = marketSell;

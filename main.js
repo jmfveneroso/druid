@@ -2,7 +2,7 @@ import {printScreen} from './display.js';
 import {Druid} from './druid.js';
 import {environments} from './environment.js';
 
-function handleClick(druid, data) {
+function handleClick(druid, data, row, col) {
   if (data !== undefined) {
     switch (data.type) {
       case "TOP_BAR_CLICK":
@@ -129,7 +129,7 @@ function handleClick(druid, data) {
       case "MSG":
         break;
       case "FN":
-        data.fn();
+        data.fn(row, col);
         break;
     }
     printScreen(druid, true, handleClick);
