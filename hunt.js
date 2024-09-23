@@ -60,7 +60,6 @@ Object.assign(GAME_STATE, {
       'Wolf': 13,
     }
   },
-  'hunting_skill': 1,
   'scroll_height': 0,
 });
 
@@ -69,7 +68,8 @@ export function getTrackingCost() {
 }
 
 export function damageAnimal(isCritical) {
-  let dmg = GAME_STATE['bow_skill'] + GAME_STATE['bow']['damage'];
+  let dmg = _.rollRangedDamage();
+
   dmg *= isCritical ? 2.0 : 1.0;
 
   let animal = GAME_STATE['animal'];
@@ -117,7 +117,7 @@ export function track() {
   for (let i = 0; i < GAME_DATA['animals'].length; i++) {
     let animal = GAME_DATA['animals'][i];
 
-    let skill = GAME_STATE['hunting_skill'];
+    let skill = GAME_STATE['druid']['hunting_skill'];
     let population = env.population[animal['name']];
     let prob =
         _.skillSuccessRate(skill * population, animal['tracking_difficulty']);
@@ -233,8 +233,9 @@ export function sneak() {
   updateLoop();
 
   let sneakProb = _.skillSuccessRate(
-      GAME_STATE['sneaking_skill'] * (1 + distance / 10),
+      _.getSneakingSkill(),
       animal['sneaking_difficulty']);
+
   template_data['sneak_prob'] = function() {
     return sneakingOutcome(animal, sneakProb);
   };
@@ -300,7 +301,7 @@ export function sneak() {
 
 export function chase() {
   let env = GAME_STATE['current_env'];
-  let skill = GAME_STATE['hunting_skill'];
+  let skill = GAME_STATE['druid']['hunting_skill'];
   let animal = GAME_STATE['animal'];
   let population = env.population[animal['name']];
   let prob = _.skillSuccessRate(
@@ -343,7 +344,7 @@ export function loot() {
   let items = [];
   for (let item of animal.loot) {
     item['fn'] = function() {
-      if (_.acquireItem(item)) {
+      if (_.acquireItem(item.name, item.q)) {
         animal.loot = animal.loot.filter(_item => _item !== item);
       } else {
         _.addMessage(`The inventory is full.`);

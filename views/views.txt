@@ -1,5 +1,5 @@
 <<< stats
-@hours   -@                                Gold: @gold-@ 
+@hours   -@               @config-@              Gold: @gold-@ 
 @stamina_bar               @ @hp_bar                 @ 
 @char_click-@ @inventory_click-@                                @leave-@
           
@@ -13,99 +13,6 @@
 @endforv
 +--------------------------------------------+
 >>> log
-
-<<< track_animal
-@onclick fn
-+--------------------------------------+
-| @name             @ | @prob        @ |
-+--------------------------------------+
-@endonclick
->>> track_animal
-
-<<< forest
-@template stats
-
-@onclick hunt
-+-----------------------------+
-| HUNT                        |
-+-----------------------------+
-@endonclick
-
-@onclick camp
-+-----------------------------+
-| CAMP                        |
-+-----------------------------+
-@endonclick
-
-@onclick map
-+-----------------------------+
-| MAP                         |
-+-----------------------------+
-@endonclick
-
-@template log msg
->>> forest
-
-<<< hunt
-@template stats
-
-@forv a in animals         @
-@template track_animal a   @
-@endforv                   @
-
-@template log msg
-
->>> hunt
-
-<<< shoot
-+----------------------------+
-@matrix animal_matrix
->>> shoot
-
-<<< btn
-@onclick shoot_fn
-+-------+
-+       +
-+       +
-+       +
-+-------+
-@endonclick
->>> btn
-
-<<< snk
-@onclick sneak_prob
-+-------+
-+ SNEAK +
-+       +
-+ @prob@+
-+-------+
-@endonclick
->>> snk
-
-<<< sneak
-@template stats
-
-%box shoot                  %  %box btn  %
-%                           %  %         %
-%                           %  %         %
-%                           %  %         %
-%                           %  %         ;
-%                           %  
-%                           %  %box snk  %
-%                           %  %         %
-%                           %  %         %
-%                           %  %         %
-%                           %  %         ;
-%                           %  
-%                           %  
-%                           %  
-%                           %  
-%                           %  
-%                           ;  
-
-@template log msg
-
->>> sneak
 
 <<< loot
 @template stats
@@ -130,41 +37,6 @@
 +--------------------------------------+
 @endonclick
 >>> chase
-
-<<< druid
-@template stats
-
-@druid.name                            @
-
-Skills:
-- Sword:    @sword_skill   @
-- Bow:      @bow_skill     @
-- Hunting:  @hunting_skill @
-- Sneaking: @sneaking_skill@
-- Skinning: @skinning_skill@
-
-Weapons:
-- Sword:    +@sword.damage @
-- Bow:      +@bow.damage   @
-
-@template log msg
->>> druid
-
-<<< inventory
-@template stats
-
-+-----------------------------------------------+
-| INVENTORY                                     |
-+-------+------------------+-----------+--------+
-@forv i in inventory
-| @i.q@ | @i.name        @ | @i.value@ | @i.w @ |
-@endforv
-+-------+------------------+-----------+--------+
-| Weight: @weight @                             |
-+-----------------------------------------------+
-
-@template log msg
->>> inventory
 
 <<< enemy1
 @matrix enemy1_matrix
@@ -334,6 +206,51 @@ Temple
 @template log msg
 >>> temple
 
+<<< config
+@template stats
+
+@onclick load
++--------------------------------------------+
+| LOAD                                       |
++--------------------------------------------+
+@endonclick
+
+@onclick save
++--------------------------------------------+
+| SAVE                                       |
++--------------------------------------------+
+@endonclick
+
+@onclick reset
++--------------------------------------------+
+| RESET                                      |
++--------------------------------------------+
+@endonclick
+
+%scroll test       %
+%                  %
+%                  %
+%                  %
+%                  %
+%                  %
+%                  ;
+
+@template log msg
+>>> config
+
 <<< game_over
 GAME OVER
 >>> game_over
+
+<<< test
+1234567890X1234567890Y1234567890
+234567890X1234567890Y12345678901
+34567890X1234567890Y123456789012
+4567890X1234567890Y1234567890123
+567890X1234567890Y12345678901234
+67890X1234567890Y123456789012345
+7890X1234567890Y1234567890123456
+890X1234567890Y12345678901234567
+90X1234567890Y123456789012345678
+0X1234567890Y1234567890123456789
+>>> test

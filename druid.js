@@ -1,9 +1,7 @@
 import {HerbGathering} from './gather.js';
 import {availableHerbs, herbMap, updateHerbMap} from './herbs.js';
-import {Map} from './map.js';
 import {Patient} from './patient.js';
 import {Potion} from './potion.js';
-import {villages} from './village.js';
 import {HerbGatheringGame} from './hotcold.js';
 
 const MOURNING_DURATION = 4;

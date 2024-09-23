@@ -150,7 +150,7 @@ function assignHerbsToEnvironments(environments, availableHerbs, herbMap) {
   });
 }
 
-export let environments = [forest, swamp, mountain, lake];
+export let environments = [lake, forest, swamp, mountain];
 
 // Call the function to assign herbs to environments
 assignHerbsToEnvironments(environments, availableHerbs, herbMap);

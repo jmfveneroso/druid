@@ -17,12 +17,6 @@ GAME_STATE['enemy1'] = {
   'pos': [2, 2],
   'took_hit': 0,
 };
-Object.assign(GAME_STATE['druid'], {
-  'hp': 12,
-  'max_hp': 12,
-  'ac': 10,
-  'init_bonus': 2,
-});
 
 function rollInitiatives() {
   let enemyInit = _.rollD(20) + GAME_STATE['enemy1']['init_bonus'];
@@ -107,7 +101,7 @@ export function addMessage(msg) {
 
 export function runEnemyTurn() {
   let roll = GAME_STATE['enemy1']['hit_bonus'] + _.rollD(20);
-  if (roll >= GAME_STATE['druid']['ac']) {
+  if (roll >= _.getDruidArmorClass()) {
     let dmg = GAME_STATE['enemy1']['damage'];
     GAME_STATE['druid']['hp'] -= Math.min(dmg, GAME_STATE['druid']['hp']);
     addMessage(`(${roll}) The wolf inflicted ${dmg} damage.`);
@@ -132,7 +126,7 @@ export function attack() {
 
   let roll = GAME_STATE['sword_skill'] + _.rollD(20);
   if (roll >= GAME_STATE['enemy1']['ac']) {
-    let dmg = GAME_STATE['sword']['damage'];
+    let dmg = _.rollMeleeDamage();
     GAME_STATE['enemy1']['hp'] -= Math.min(dmg, GAME_STATE['enemy1']['hp']);
     GAME_STATE['enemy1']['took_hit'] = 10;
     addMessage(`(${roll}) You hit the wolf for ${dmg} HP.`);

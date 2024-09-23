@@ -1,0 +1,45 @@
+<<< druid
+@template stats
+
+@druid.name                            @
+
+Stats:
+- AC:    @ac @
+
+Skills:
+- Sword:    @druid.sword_skill   @
+- Bow:      @druid.bow_skill     @
+- Hunting:  @druid.hunting_skill @
+- Sneaking: @sneak_bonus@
+- Skinning: @druid.skinning_skill@
+
+Equipped:
+- Sword: 
+    @druid.melee.name-@ 1d@druid.melee.base_die-@+@druid.melee.bonus-@
+- Bow:   
+    @druid.ranged.name-@ 1d@druid.ranged.base_die-@+@druid.ranged.bonus-@
+- Armor:    
+    @druid.armor.name-@ +@druid.armor.bonus @
+- Boots:    
+    @druid.boots.name-@ +@druid.boots.bonus @
+
+@template log msg
+>>> druid
+
+<<< inventory
+@template stats
+
++-----------------------------------------------+
+| INVENTORY                                     |
++-------+------------------+-----------+--------+
+@forv i in inventory
+@onclick i.fn
+| @i.q@ | @i.name        @ | @i.value@ | @i.w @ |
+@endonclick
+@endforv
++-------+------------------+-----------+--------+
+| Weight: @weight @                             |
++-----------------------------------------------+
+
+@template log msg
+>>> inventory

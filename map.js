@@ -1,49 +1,36 @@
-import {GAME_DATA, GAME_STATE, TEMP} from './data.js';
+import {GAME_STATE, loader} from './data.js';
 import {environments} from './environment.js';
-import {run} from './main.js';
 import {renderer} from './renderer.js';
-import {villages} from './village.js';
+import * as _villages from './village.js';
 import * as _ from './yaml.js';
 
-export class Map {
-  constructor() {
-    this.gridSize = 4;
-    this.grid = this.initializeGrid(environments);
-    this.villages = this.placeVillages(villages);
-    this.druidLocation = {x: 0, y: 0};  // Druid starts at the top-left corner
-  }
-
-  initializeGrid(environments) {
+function createMap(gridSize = 4) {
+  function initializeGrid(environments) {
     let grid = [];
-    for (let i = 0; i < this.gridSize; i++) {
+    for (let i = 0; i < gridSize; i++) {
       grid[i] = [];
-      for (let j = 0; j < this.gridSize; j++) {
-        // Randomly assign an environment to each grid square
-        grid[i][j] = [
-          environments[Math.floor(Math.random() * environments.length)],
-          undefined
-        ];
+      for (let j = 0; j < gridSize; j++) {
+        let envType = Math.max(3 - i, 3 - j);
+        grid[i][j] = {'environment': environments[envType].name};
       }
     }
     return grid;
   }
 
-  placeVillages(villages) {
+  function placeVillages(villages, grid) {
     let corners = [
-      {x: 0, y: 0},
-      {x: 0, y: this.gridSize - 1},
-      {x: this.gridSize - 1, y: 0},
-      {x: this.gridSize - 1, y: this.gridSize - 1},
+      {x: 0, y: gridSize - 1},
+      {x: gridSize - 1, y: 0},
+      {x: gridSize - 1, y: gridSize - 1},
     ];
 
     for (let i = 0; i < villages.length; i++) {
       let village = villages[i];
-
       let corner = corners[i];
       let x = corner.x;
       let y = corner.y;
 
-      this.grid[x][y][1] = village;
+      grid[x][y]['village'] = i;
 
       village.location = {x: x, y: y};
 
@@ -51,42 +38,29 @@ export class Map {
       const yVillage = Math.floor(Math.random() * 2);
       village.displayLoc = {x: xVillage, y: yVillage};
     }
+    return grid;
   }
 
-  moveDruid(newX, newY) {
-    const {x, y} = this.druidLocation;
-    if (Math.abs(newX - x) + Math.abs(newY - y) > 1) return false;
-
-    this.druidLocation.x = newX;
-    this.druidLocation.y = newY;
-    return true;
-  }
-
-  getDruidLocation() {
-    return this.grid[this.druidLocation.x][this.druidLocation.y];
-  }
-
-  isEnvironment() {
-    return this.getDruidLocation()[1] === undefined;
-  }
-
-  getCurrentEnvironment() {
-    return this.getDruidLocation()[0];
-  }
-
-  getCurrentVillage() {
-    return this.getDruidLocation()[1];
-  }
+  let grid = initializeGrid(environments);
+  grid = placeVillages(GAME_STATE['villages'], grid);
+  return grid;
 }
 
-let the_map = new Map();
-
-Object.assign(GAME_STATE, {
-  'map_grid': the_map.grid,
-});
+GAME_STATE['map_grid'] = createMap();
 
 function getTravelCost() {
-  return 50;
+  return 10;
+}
+
+function enterVillage(village, x, y) {
+  const druidX = GAME_STATE['druid']['position']['x'];
+  const druidY = GAME_STATE['druid']['position']['y'];
+  if (x != druidX || y != druidY) {
+    return;
+  }
+
+  GAME_STATE['village'] = village;
+  _.pushView('village');
 }
 
 function getMapMatrix() {
@@ -116,7 +90,7 @@ function getMapMatrix() {
         (Math.abs(x - druidX) + Math.abs(y - druidY) > 1)) {
       return;
     }
-    
+
     if (!_.useAbility(getTravelCost())) {
       _.addMessage(`You do not have enough stamina to travel.`);
       return;
@@ -127,15 +101,6 @@ function getMapMatrix() {
     _.addTime('6:00');
   }
 
-  function enterVillage(village, x, y) {
-    if (x != druidX || y != druidY) {
-      return;
-    }
-
-    GAME_STATE['village'] = village;
-    _.pushView('village');
-  }
-
   let matrix = [];
   for (let i = 0; i < 17; i++) {
     matrix.push(['$'.repeat(29)]);
@@ -143,9 +108,11 @@ function getMapMatrix() {
 
   for (let i = 0; i < grid.length; i++) {
     for (let j = 0; j < grid[i].length; j++) {
-      const env = grid[i][j][0];
-      let envSymbol = environmentSymbols[env.name];
-      const village = grid[i][j][1];
+      const env_name = grid[i][j]['environment'];
+      let envSymbol = environmentSymbols[env_name];
+
+      const village_index = grid[i][j]['village'];
+      const village = GAME_STATE['villages'][village_index];
 
       const druidHere = (i === druidX && j === druidY);
 
@@ -197,16 +164,22 @@ export function map() {
 
   data['map_matrix'] = getMapMatrix();
 
-  data['map_fn'] = function(x, y) {
-    console.log(x, y);
-  };
-
   data['rest'] = function() {
     _.pushView('camp');
   };
 
   data['enter'] = function() {
-    _.pushView('forest');
+    const grid = GAME_STATE['map_grid'];
+    const i = GAME_STATE['druid']['position']['x'];
+    const j = GAME_STATE['druid']['position']['y'];
+
+    const village_index = grid[i][j]['village'];
+    if (village_index !== undefined) {
+      const village = GAME_STATE['villages'][village_index];
+      enterVillage(village, i, j);
+    } else {
+      _.pushView('forest');
+    }
   };
 
   return data;

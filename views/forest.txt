@@ -1,0 +1,92 @@
+<<< forest
+@template stats
+
+@onclick hunt
++-----------------------------+
+| HUNT                        |
++-----------------------------+
+@endonclick
+
+@onclick camp
++-----------------------------+
+| CAMP                        |
++-----------------------------+
+@endonclick
+
+@onclick map
++-----------------------------+
+| MAP                         |
++-----------------------------+
+@endonclick
+
+@template log msg
+>>> forest
+
+<<< track_animal
+@onclick fn
++--------------------------------------+
+| @name             @ | @prob        @ |
++--------------------------------------+
+@endonclick
+>>> track_animal
+
+<<< hunt
+@template stats
+
+@forv a in animals         @
+@template track_animal a   @
+@endforv                   @
+
+@template log msg
+
+>>> hunt
+
+<<< shoot
++----------------------------+
+@matrix animal_matrix
+>>> shoot
+
+<<< btn
+@onclick shoot_fn
++-------+
++       +
++       +
++       +
++-------+
+@endonclick
+>>> btn
+
+<<< snk
+@onclick sneak_prob
++-------+
++ SNEAK +
++       +
++ @prob@+
++-------+
+@endonclick
+>>> snk
+
+<<< sneak
+@template stats
+
+%box shoot                  %  %box btn  %
+%                           %  %         %
+%                           %  %         %
+%                           %  %         %
+%                           %  %         ;
+%                           %  
+%                           %  %box snk  %
+%                           %  %         %
+%                           %  %         %
+%                           %  %         %
+%                           %  %         ;
+%                           %  
+%                           %  
+%                           %  
+%                           %  
+%                           %  
+%                           ;  
+
+@template log msg
+
+>>> sneak

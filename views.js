@@ -1,6 +1,5 @@
 import {environments} from './environment.js';
 import {herbMap} from './herbs.js';
-import {villages} from './village.js';
 
 export const SCREEN_WIDTH = 50;
 export const SCREEN_HEIGHT = 45;

@@ -136,20 +136,7 @@ function handleClick(druid, data, row, col) {
     return;
   }
 
-  if (druid.gameState !== 'HOT_COLD') {
-    if (druid.nextState === undefined) {
-      if (druid.gameState === 'MAP') {
-        druid.setState('VILLAGE');
-      } else if (druid.gameState === 'VILLAGE') {
-        druid.setState('VILLAGE_MAP');
-      } else {
-        druid.setState('MAP');
-      }
-    } else {
-      druid.setState(druid.nextState);
-      druid.nextState = undefined;
-    }
-  }
+  druid.setState('HUNT');
   printScreen(druid, true, handleClick);
 }
 

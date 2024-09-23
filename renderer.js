@@ -1,10 +1,13 @@
-import {GAME_DATA, GAME_STATE, TEMP} from './data.js';
+import {GAME_STATE, readTemp, TEMP, writeTemp} from './data.js';
 import * as views from './views.js';
+
+const MAX_WIDTH = 1000;
+const MAX_HEIGHT = 1000;
 
 export class TemplateReader {
   constructor(renderer, x, y) {
     this.renderer = renderer;
-    this.buffer = this.createBuffer(100, 100);
+    this.buffer = this.createBuffer(MAX_WIDTH, MAX_HEIGHT);
     this.max_width = 0;
     this.max_height = 0;
     this.current_char = 0;
@@ -34,7 +37,7 @@ export class TemplateReader {
     let x = this.current_char;
     let y = this.current_line;
     for (let i = 0; i < text.length; i++) {
-      if (x + i >= 0 && x + i < 100 && y >= 0 && y < 100) {
+      if (x + i >= 0 && x + i < MAX_WIDTH && y >= 0 && y < MAX_HEIGHT) {
         if (fn === undefined && this.onclick) {
           fn = this.onclick;
         }
@@ -269,7 +272,7 @@ export class TemplateReader {
       }
     }
 
-    let [, template_name] = expression.split(' ');
+    let [command, template_name] = expression.split(' ');
 
     for (let i = x; i < x + width; i++) {
       for (let j = y; j < y + height; j++) {
@@ -277,8 +280,62 @@ export class TemplateReader {
       }
     }
 
-    this.renderer.renderTemplate(
-        this.buffer, x, y, template_name, data, width, height);
+    if (command === 'scroll') {
+      let counter = this.counter;
+      let scroll_x = readTemp('scroll_x', counter) || 0;
+      let scroll_y = readTemp('scroll_y', counter) || 0;
+      let reader = this.renderer.renderTemplate(
+          this.buffer, x + 1, y + 1, template_name, data, width - 2, height - 2,
+          scroll_x, scroll_y);
+      let max_width = reader.max_width;
+      let max_height = reader.max_height;
+      
+      let x_ = x + width - 1;
+      for (let y_ = y + 1; y_ < y + height - 1; y_++) {
+        let can_scroll = scroll_x + width - 2 < max_width;
+        let symbol = can_scroll ? '.' : '#';
+        this.writeToBuffer(x_, y_, [symbol, {type: 'FN', fn: function () {
+          if (can_scroll) {
+            writeTemp('scroll_x', scroll_x + 1, counter);
+          }
+        }}]);
+      }
+      
+      for (let y_ = y + 1; y_ < y + height - 1; y_++) {
+        let can_scroll = scroll_x > 0;
+        let symbol = can_scroll ? '.' : '#';
+        this.writeToBuffer(x, y_, [symbol, {type: 'FN', fn: function () {
+          if (can_scroll) {
+            writeTemp('scroll_x', scroll_x - 1, counter);
+          }
+        }}]);
+      }
+      
+      let y_ = y + height - 1;
+      for (let x_ = x + 1; x_ < x + width - 1; x_++) {
+        let can_scroll = scroll_y + height - 2 < max_height;
+        let symbol = can_scroll ? '.' : '#';
+        this.writeToBuffer(x_, y_, [symbol, {type: 'FN', fn: function () {
+          if (can_scroll) {
+            writeTemp('scroll_y', scroll_y + 1, counter);
+          }
+        }}]);
+      }
+      
+      for (let x_ = x + 1; x_ < x + width - 1; x_++) {
+        let can_scroll = scroll_y > 0;
+        let symbol = can_scroll ? '.' : '#';
+        this.writeToBuffer(x_, y, [symbol, {type: 'FN', fn: function () {
+          if (can_scroll) {
+            writeTemp('scroll_y', scroll_y - 1, counter);
+          }
+        }}]);
+      }
+      
+    } else {
+      this.renderer.renderTemplate(
+          this.buffer, x, y, template_name, data, width, height);
+    }
   }
 
   renderTemplate(lines, data) {
@@ -306,9 +363,6 @@ export class TemplateReader {
           case '@matrix':
             this.processMatrix(line, data);
             break;
-          // case '@box':
-          //   this.processBox(lines, 0, i, data);
-          //   break;
           case '@def':
           case '@enddef':
           case '@onclick':
@@ -344,12 +398,12 @@ export class TemplateReader {
 
   writeBuffer(
       screen, x, y, max_width = views.SCREEN_WIDTH,
-      max_height = views.SCREEN_HEIGHT) {
+      max_height = views.SCREEN_HEIGHT, start_x = 0, start_y = 0) {
     for (let i = 0; i < this.max_width; i++) {
       for (let j = 0; j < this.max_height; j++) {
         if (x + i >= 0 && x + i < x + max_width && y + j >= 0 &&
             y + j < y + max_height) {
-          screen[y + j][x + i] = this.buffer[j][i];
+          screen[y + j][x + i] = this.buffer[j + start_y][i + start_x];
         }
       }
     }
@@ -376,9 +430,9 @@ export class Renderer {
     }
   }
 
-  async loadViews() {
+  async loadViewsFromFile(filename) {
     try {
-      const response = await fetch(this.dir + 'views.txt');
+      const response = await fetch(this.dir + filename);
 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -391,7 +445,29 @@ export class Renderer {
     }
   }
 
-  renderTemplate(screen, x, y, template_name, data, max_width, max_height) {
+  async loadViews() {
+    console.log('views');
+    try {
+      // Fetch the list of files from the directory
+      const response = await fetch('/list-views');
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const files = await response.json(); // List of files
+      for (const file of files) {
+        console.log(file);
+        this.loadViewsFromFile(file);
+      }
+    } catch (error) {
+      console.error('Error loading views:', error);
+    }
+  }
+
+  renderTemplate(
+      screen, x, y, template_name, data, max_width, max_height, start_x,
+      start_y) {
     if (data === undefined) {
       data = {};
     }
@@ -409,7 +485,7 @@ export class Renderer {
     this.counter += 1;
 
     reader.renderTemplate(lines, data);
-    screen = reader.writeBuffer(screen, x, y, max_width, max_height);
+    screen = reader.writeBuffer(screen, x, y, max_width, max_height, start_x, start_y);
     return reader;
   }
 }
