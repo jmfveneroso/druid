@@ -1,4 +1,4 @@
-import {GAME_DATA, GAME_STATE, TEMP} from './data.js';
+import {GAME_STATE, TEMP} from './data.js';
 import {run} from './main.js';
 import {renderer} from './renderer.js';
 import * as _ from './yaml.js';
@@ -7,16 +7,16 @@ Object.assign(GAME_STATE, {
   'battle_state': 'START',
   'battle_counter': 51,
   'sword_swing_cost': 5,
+  'enemy1': {
+    'hp': 5,
+    'hit_bonus': 1,
+    'damage': 1,
+    'ac': 12,
+    'init_bonus': 2,
+    'pos': [2, 2],
+    'took_hit': 0,
+  }
 });
-GAME_STATE['enemy1'] = {
-  'hp': 5,
-  'hit_bonus': 1,
-  'damage': 1,
-  'ac': 12,
-  'init_bonus': 2,
-  'pos': [2, 2],
-  'took_hit': 0,
-};
 
 function rollInitiatives() {
   let enemyInit = _.rollD(20) + GAME_STATE['enemy1']['init_bonus'];

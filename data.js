@@ -1,4 +1,4 @@
-export const GAME_DATA = {
+export let GAME_STATE = {
   'items': {
     'Tent': {value: 100, weight: 10},
     'Waterskin': {value: 5, weight: 1},
@@ -17,6 +17,9 @@ export const GAME_DATA = {
     'Silver Armor': {value: 100, weight: 5, bonus: 2, type: 'armor'},
     'Copper Boots': {value: 50, weight: 5, bonus: 1, type: 'boots'},
     'Silver Boots': {value: 100, weight: 5, bonus: 2, type: 'boots'},
+    'Rabbit Carcass': {value: 5, weight: 50},
+    'Deer Carcass': {value: 5, weight: 50},
+    'Wolf Carcass': {value: 5, weight: 50},
   },
   'enemies': {
     'wolf': {
@@ -29,10 +32,7 @@ export const GAME_DATA = {
     },
   },
   'encounter_prob': 0.2,
-};
-
-export let GAME_STATE = {
-  'views': ['forest'],
+  'views': ['map'],
   'current_env': {
     'population': {
       'Rabbit': 100,
@@ -55,8 +55,8 @@ export let GAME_STATE = {
       {name: 'Silver Bow', q: 1},
       {name: 'Silver Armor', q: 1},
       {name: 'Silver Boots', q: 1},
+      {name: 'Rabbit Carcass', q: 1},
     ],
-    'max_weight': 100,
     'position': {'x': 3, 'y': 3},
     'ranged': {
       'name': 'Copper Bow',
@@ -84,6 +84,8 @@ export let GAME_STATE = {
     'sneaking_skill': 1,
     'bow_skill': 1,
     'skinning_skill': 1,
+    'skill_points': 10,
+    'max_weight': 100,
   },
   'market': {
     'items': [

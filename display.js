@@ -32,10 +32,6 @@ function renderScreen(druid, screen, isBrowser, handleClick) {
           handleClick(druid, fn, colIndex, rowIndex);
         });
 
-        charElement.addEventListener('mouseover', function() {
-          // handleClick(druid, fn);
-        });
-
         rowElement.appendChild(charElement);
       });
 

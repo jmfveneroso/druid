@@ -2,7 +2,7 @@
 @hours   -@               @config-@              Gold: @gold-@ 
 @stamina_bar               @ @hp_bar                 @ 
 @char_click-@ @inventory_click-@                                @leave-@
-          
+                                           @leave-@
                     
 >>> stats
 
@@ -205,6 +205,16 @@ Temple
 
 @template log msg
 >>> temple
+
+<<< house
+@template stats
+
+House
+
+@villager_name @
+
+@template log msg
+>>> house
 
 <<< config
 @template stats

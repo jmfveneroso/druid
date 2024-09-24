@@ -5,7 +5,7 @@ const MAX_WIDTH = 1000;
 const MAX_HEIGHT = 1000;
 
 export class TemplateReader {
-  constructor(renderer, x, y) {
+  constructor(renderer, x, y, onclick_fn) {
     this.renderer = renderer;
     this.buffer = this.createBuffer(MAX_WIDTH, MAX_HEIGHT);
     this.max_width = 0;
@@ -13,7 +13,7 @@ export class TemplateReader {
     this.current_char = 0;
     this.current_line = 0;
     this.counter = renderer.counter;
-    this.onclick = undefined;
+    this.onclick = onclick_fn;
     this.parent_x = x;
     this.parent_y = y;
   }
@@ -284,52 +284,59 @@ export class TemplateReader {
       let counter = this.counter;
       let scroll_x = readTemp('scroll_x', counter) || 0;
       let scroll_y = readTemp('scroll_y', counter) || 0;
+      
+      let fn = function () {
+        console.log('Shit happens');
+      };
+
       let reader = this.renderer.renderTemplate(
-          this.buffer, x + 1, y + 1, template_name, data, width - 2, height - 2,
-          scroll_x, scroll_y);
+          this.buffer, x + 2, y + 2, template_name, data, width - 4, height - 4,
+          scroll_x, scroll_y, fn);
       let max_width = reader.max_width;
       let max_height = reader.max_height;
       
-      let x_ = x + width - 1;
-      for (let y_ = y + 1; y_ < y + height - 1; y_++) {
-        let can_scroll = scroll_x + width - 2 < max_width;
-        let symbol = can_scroll ? '.' : '#';
-        this.writeToBuffer(x_, y_, [symbol, {type: 'FN', fn: function () {
-          if (can_scroll) {
-            writeTemp('scroll_x', scroll_x + 1, counter);
-          }
-        }}]);
-      }
+      for (let i = 0; i < 2; i++) {
+        let x_ = x + width - 1;
+        for (let y_ = y + 1; y_ < y + height - 1; y_++) {
+          let can_scroll = scroll_x + width - 2 < max_width;
+          let symbol = can_scroll ? '.' : '#';
+          this.writeToBuffer(x_ - i, y_, [symbol, {type: 'FN', fn: function () {
+            if (can_scroll) {
+              writeTemp('scroll_x', scroll_x + 1, counter);
+            }
+          }}]);
+        }
       
-      for (let y_ = y + 1; y_ < y + height - 1; y_++) {
-        let can_scroll = scroll_x > 0;
-        let symbol = can_scroll ? '.' : '#';
-        this.writeToBuffer(x, y_, [symbol, {type: 'FN', fn: function () {
-          if (can_scroll) {
-            writeTemp('scroll_x', scroll_x - 1, counter);
-          }
-        }}]);
-      }
+        for (let y_ = y + 1; y_ < y + height - 1; y_++) {
+          let can_scroll = scroll_x > 0;
+          let symbol = can_scroll ? '.' : '#';
+          this.writeToBuffer(x + i, y_, [symbol, {type: 'FN', fn: function () {
+            if (can_scroll) {
+              writeTemp('scroll_x', scroll_x - 1, counter);
+            }
+          }}]);
+        }
       
-      let y_ = y + height - 1;
-      for (let x_ = x + 1; x_ < x + width - 1; x_++) {
-        let can_scroll = scroll_y + height - 2 < max_height;
-        let symbol = can_scroll ? '.' : '#';
-        this.writeToBuffer(x_, y_, [symbol, {type: 'FN', fn: function () {
-          if (can_scroll) {
-            writeTemp('scroll_y', scroll_y + 1, counter);
-          }
-        }}]);
-      }
+        let y_ = y + height - 1;
+        for (let x_ = x + 1; x_ < x + width - 1; x_++) {
+          let can_scroll = scroll_y + height - 2 < max_height;
+          let symbol = can_scroll ? '.' : '#';
+          this.writeToBuffer(x_, y_ - i, [symbol, {type: 'FN', fn: function () {
+            if (can_scroll) {
+              writeTemp('scroll_y', scroll_y + 1, counter);
+            }
+          }}]);
+        }
       
-      for (let x_ = x + 1; x_ < x + width - 1; x_++) {
-        let can_scroll = scroll_y > 0;
-        let symbol = can_scroll ? '.' : '#';
-        this.writeToBuffer(x_, y, [symbol, {type: 'FN', fn: function () {
-          if (can_scroll) {
-            writeTemp('scroll_y', scroll_y - 1, counter);
-          }
-        }}]);
+        for (let x_ = x + 1; x_ < x + width - 1; x_++) {
+          let can_scroll = scroll_y > 0;
+          let symbol = can_scroll ? '.' : '#';
+          this.writeToBuffer(x_, y + i, [symbol, {type: 'FN', fn: function () {
+            if (can_scroll) {
+              writeTemp('scroll_y', scroll_y - 1, counter);
+            }
+          }}]);
+        }
       }
       
     } else {
@@ -467,7 +474,7 @@ export class Renderer {
 
   renderTemplate(
       screen, x, y, template_name, data, max_width, max_height, start_x,
-      start_y) {
+      start_y, onclick) {
     if (data === undefined) {
       data = {};
     }
@@ -481,7 +488,7 @@ export class Renderer {
     }
 
     const lines = this.views[template_name].split('\n');
-    let reader = new TemplateReader(this, x, y);
+    let reader = new TemplateReader(this, x, y, onclick);
     this.counter += 1;
 
     reader.renderTemplate(lines, data);

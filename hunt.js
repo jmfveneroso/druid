@@ -1,9 +1,9 @@
-import {GAME_DATA, GAME_STATE, TEMP} from './data.js';
+import {GAME_STATE, TEMP} from './data.js';
 import {run} from './main.js';
 import {renderer} from './renderer.js';
 import * as _ from './yaml.js';
 
-Object.assign(GAME_DATA, {
+Object.assign(GAME_STATE, {
   'animals': [
     {
       'name': 'Rabbit',
@@ -15,8 +15,9 @@ Object.assign(GAME_DATA, {
       'speed': 1,
       'fights': false,
       'loot': [
-        {name: 'Rabbit Pelt', q: 1, value: 10},
-        {name: 'Rabbit Foot', q: 1, value: 25}
+        {name: 'Rabbit Carcass', q: 1 },
+        {name: 'Rabbit Pelt', q: 1 },
+        {name: 'Rabbit Foot', q: 1 }
       ]
     },
     {
@@ -64,7 +65,7 @@ Object.assign(GAME_STATE, {
 });
 
 export function getTrackingCost() {
-  return GAME_DATA['tracking_cost'];
+  return GAME_STATE['tracking_cost'];
 }
 
 export function damageAnimal(isCritical) {
@@ -79,6 +80,11 @@ export function damageAnimal(isCritical) {
 
 export function track() {
   function trackingOutcome(animal, prob) {
+    if (_.isOverweight()) {
+      _.addMessage(`You are overweight.`);
+      return;
+    }
+
     if (!_.useAbility(getTrackingCost())) {
       _.addMessage(`You do not have enough stamina.`);
       _.popView();
@@ -114,8 +120,8 @@ export function track() {
 
   let template_data = {};
   template_data['animals'] = [];
-  for (let i = 0; i < GAME_DATA['animals'].length; i++) {
-    let animal = GAME_DATA['animals'][i];
+  for (let i = 0; i < GAME_STATE['animals'].length; i++) {
+    let animal = GAME_STATE['animals'][i];
 
     let skill = GAME_STATE['druid']['hunting_skill'];
     let population = env.population[animal['name']];
@@ -193,7 +199,7 @@ export function sneak() {
     GAME_STATE['shoot_cursor_pos'] = cursor_pos;
 
     if (arrow_pos === undefined) {
-      if (!_.useAbility(GAME_DATA['drawing_cost'])) {
+      if (!_.useAbility(GAME_STATE['drawing_cost'])) {
         _.addMessage(`The ${animal.name} ran away.`);
         _.popView();
       }
@@ -360,13 +366,10 @@ export function forest() {
   let template_data = {};
   template_data['hunt'] = function() {
     _.pushView('hunt');
-    _.addMessage(GAME_DATA['track_msg']);
+    _.addMessage(GAME_STATE['track_msg']);
   };
   template_data['camp'] = function() {
     _.pushView('camp');
-  };
-  template_data['map'] = function() {
-    _.pushView('map');
   };
   return template_data;
 }
@@ -377,7 +380,7 @@ export function camp() {
     _.setTimeNextDay('6:00');
     GAME_STATE['stamina'] = 100;
 
-    let success = _.roll(GAME_DATA['encounter_prob']);
+    let success = _.roll(GAME_STATE['encounter_prob']);
     if (success) {
       _.popAndPushView('battle');
       return;

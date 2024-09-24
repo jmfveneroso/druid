@@ -5,13 +5,14 @@
 
 Stats:
 - AC:    @ac @
+- Skill Points:    @druid.skill_points   @
 
 Skills:
-- Sword:    @druid.sword_skill   @
-- Bow:      @druid.bow_skill     @
-- Hunting:  @druid.hunting_skill @
-- Sneaking: @sneak_bonus@
-- Skinning: @druid.skinning_skill@
+- Sword:    @sword_skill         @
+- Bow:      @bow_skill           @
+- Hunting:  @hunting_skill       @
+- Sneaking: @sneaking_skill      @
+- Skinning: @skinning_skill      @
 
 Equipped:
 - Sword: 
@@ -29,17 +30,17 @@ Equipped:
 <<< inventory
 @template stats
 
-+-----------------------------------------------+
-| INVENTORY                                     |
-+-------+------------------+-----------+--------+
++------------------------------------------------+
+| INVENTORY                                      |
++-------+---------------+-----------+--------+---+
 @forv i in inventory
 @onclick i.fn
-| @i.q@ | @i.name        @ | @i.value@ | @i.w @ |
+| @i.q@ | @i.name     @ | @i.value@ | @i.w @ |@i.delete-@|
 @endonclick
 @endforv
-+-------+------------------+-----------+--------+
-| Weight: @weight @                             |
-+-----------------------------------------------+
++-------+---------------+-----------+--------+---+
+| Weight: @weight@ / @max_weight @               |
++------------------------------------------------+
 
 @template log msg
 >>> inventory

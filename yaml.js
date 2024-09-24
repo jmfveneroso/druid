@@ -1,4 +1,4 @@
-import {GAME_DATA, GAME_STATE, loader, readTemp, TEMP, writeTemp} from './data.js';
+import {GAME_STATE, loader, readTemp, TEMP, writeTemp} from './data.js';
 import {run} from './main.js';
 import * as map from './map.js';
 import {renderer} from './renderer.js';
@@ -24,12 +24,12 @@ export function useAbility(stamina_cost) {
 }
 
 export function getItemWeight(item_name) {
-  let item_data = GAME_DATA['items'][item_name];
+  let item_data = GAME_STATE['items'][item_name];
   return item_data['weight'] || 0;
 }
 
 export function getItemValue(item_name) {
-  let item_data = GAME_DATA['items'][item_name];
+  let item_data = GAME_STATE['items'][item_name];
   return item_data['value'] || 0;
 }
 
@@ -41,11 +41,15 @@ export function getCurrentWeight() {
   return weight;
 }
 
+export function isOverweight() {
+  return getCurrentWeight() > GAME_STATE['druid']['max_weight'];
+}
+
 export function acquireItem(item_name, quantity) {
-  let addedWeight = getItemWeight(item_name) * quantity;
-  if (getCurrentWeight() + addedWeight > GAME_STATE['druid']['max_weight']) {
-    return false;
-  }
+  // let addedWeight = getItemWeight(item_name) * quantity;
+  // if (getCurrentWeight() + addedWeight > GAME_STATE['druid']['max_weight']) {
+  //   return false;
+  // }
 
   for (let _item of GAME_STATE['druid']['items']) {
     if (_item['name'] == item_name) {
@@ -255,7 +259,8 @@ export function getDruidArmorClass() {
 }
 
 export function getSneakingSkill() {
-  return GAME_STATE['druid']['sneaking_skill'] + GAME_STATE['druid']['boots']['bonus'] + 10;
+  return GAME_STATE['druid']['sneaking_skill'] +
+      GAME_STATE['druid']['boots']['bonus'] + 10;
 }
 
 export function rollMeleeDamage() {
@@ -270,15 +275,54 @@ export function rollRangedDamage() {
   return dmg;
 }
 
+function increaseSkill(skill) {
+  let cost = GAME_STATE['druid'][skill] + 1;
+  if (GAME_STATE['druid']['skill_points'] >= cost) {
+    GAME_STATE['druid']['skill_points'] -= cost;
+    GAME_STATE['druid'][skill] += 1;
+    return;
+  }
+
+  addMessage('You do not have enough skill points');
+}
 
 export function druid(data) {
   data['ac'] = getDruidArmorClass();
-  data['sneak_bonus'] = getSneakingSkill();
+  data['sword_skill'] = {
+    'str': GAME_STATE['druid']['sword_skill'],
+    'fn': function() {
+      increaseSkill('sword_skill');
+    }
+  };
+  data['bow_skill'] = {
+    'str': GAME_STATE['druid']['bow_skill'],
+    'fn': function() {
+      increaseSkill('bow_skill');
+    }
+  };
+  data['sneaking_skill'] = {
+    'str': getSneakingSkill(),
+    'fn': function() {
+      increaseSkill('sneaking_skill');
+    }
+  };
+  data['hunting_skill'] = {
+    'str': GAME_STATE['druid']['hunting_skill'],
+    'fn': function() {
+      increaseSkill('hunting_skill');
+    }
+  };
+  data['skinning_skill'] = {
+    'str': GAME_STATE['druid']['skinning_skill'],
+    'fn': function() {
+      increaseSkill('skinning_skill');
+    }
+  };
   return data;
 }
 
 export function equipWeapon(item_name) {
-  let item_data = GAME_DATA['items'][item_name];
+  let item_data = GAME_STATE['items'][item_name];
 
   consumeItem(item_name);
   acquireItem(GAME_STATE['druid']['melee']['name'], 1);
@@ -289,7 +333,7 @@ export function equipWeapon(item_name) {
 }
 
 export function equipRangedWeapon(item_name) {
-  let item_data = GAME_DATA['items'][item_name];
+  let item_data = GAME_STATE['items'][item_name];
 
   consumeItem(item_name);
   acquireItem(GAME_STATE['druid']['ranged']['name'], 1);
@@ -300,7 +344,7 @@ export function equipRangedWeapon(item_name) {
 }
 
 export function equipArmor(item_name) {
-  let item_data = GAME_DATA['items'][item_name];
+  let item_data = GAME_STATE['items'][item_name];
 
   consumeItem(item_name);
   acquireItem(GAME_STATE['druid']['armor']['name'], 1);
@@ -310,7 +354,7 @@ export function equipArmor(item_name) {
 }
 
 export function equipBoots(item_name) {
-  let item_data = GAME_DATA['items'][item_name];
+  let item_data = GAME_STATE['items'][item_name];
 
   consumeItem(item_name);
   acquireItem(GAME_STATE['druid']['boots']['name'], 1);
@@ -322,13 +366,14 @@ export function equipBoots(item_name) {
 export function inventory(data) {
   let weight = getCurrentWeight();
   data['weight'] = weight;
+  data['max_weight'] = GAME_STATE['druid']['max_weight'];
 
   let items = [];
   for (let item of GAME_STATE['druid'].items) {
     item['w'] = item.q * getItemWeight(item.name);
     item['value'] = getItemValue(item.name);
     item['fn'] = function() {
-      let item_data = GAME_DATA['items'][item.name];
+      let item_data = GAME_STATE['items'][item.name];
       switch (item_data['type']) {
         case 'melee':
           equipWeapon(item.name);
@@ -342,6 +387,12 @@ export function inventory(data) {
         case 'boots':
           equipBoots(item.name);
           break;
+      }
+    };
+    item['delete'] = {
+      'str': '-X-',
+      'fn': function() {
+        consumeItem(item.name);
       }
     };
     items.push(item);

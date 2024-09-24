@@ -91,6 +91,11 @@ function getMapMatrix() {
       return;
     }
 
+    if (_.isOverweight()) {
+      _.addMessage(`You are overweight.`);
+      return;
+    }
+
     if (!_.useAbility(getTravelCost())) {
       _.addMessage(`You do not have enough stamina to travel.`);
       return;

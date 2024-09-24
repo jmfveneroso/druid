@@ -159,7 +159,7 @@ function createVillageMap(village, this_width = 42, this_height = 20) {
   function placeHouses() {
     for (let i = 0; i < village.villagers.length; i++) {
       let [x, y] = getStructurePlacement(3, 2);
-      drawRect(x, y, 3, 2, 'H');
+      drawRect(x, y, 3, 2, 'H', 'house_' + i);
     }
   }
 
@@ -242,7 +242,14 @@ function getVillageMap(village, matrix) {
         }
       }
       let fn = function() {
-        _.pushView(grid[i][j].fn);
+        let fn_name = grid[i][j].fn;
+        if (fn_name.startsWith('house')) {
+          let index = fn_name.substr(6);
+          GAME_STATE['current_house'] = index;
+          _.pushView('house');
+          return;
+        }
+        _.pushView(fn_name);
       };
       writeToMatrix(matrix, j, i, symbol, fn);
     }
@@ -300,6 +307,19 @@ function marketSell() {
   return data;
 }
 
+function house() {
+  let data = {};
+  
+  let village = GAME_STATE['village'];
+  let index = GAME_STATE['current_house'];
+  let villager = village.villagers[index];
+
+  data['villager_name'] = villager;
+
+  return data;
+}
+
 renderer.models['village'] = renderVillage;
 renderer.models['market_buy'] = marketBuy;
 renderer.models['market_sell'] = marketSell;
+renderer.models['house'] = house;
