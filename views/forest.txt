@@ -1,15 +1,15 @@
 <<< forest
 @template stats
 
+@env.type                @
+
+@forv a in animals
+@a.name         @ @a.population@ @a.prob@
+@endforv                   @
+
 @onclick hunt
 +-----------------------------+
-| HUNT                        |
-+-----------------------------+
-@endonclick
-
-@onclick camp
-+-----------------------------+
-| CAMP                        |
+| EXPLORE                     |
 +-----------------------------+
 @endonclick
 
@@ -26,6 +26,8 @@
 
 <<< hunt
 @template stats
+
+You found tracks from these animals:
 
 @forv a in animals         @
 @template track_animal a   @
@@ -82,5 +84,4 @@
 %                           ;  
 
 @template log msg
-
 >>> sneak

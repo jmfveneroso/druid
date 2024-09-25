@@ -11,7 +11,6 @@ function handleClick(druid, data, row, col) {
       case "MAIN_MENU_CLICK":
         let key = Object.keys(druid.mainMenuOptions)[data.pos];
         if (data.pos == 2) {
-          console.log(druid.gameState);
           druid.setNextState(druid.gameState);
         }
         druid.setState(druid.mainMenuOptions[key]);

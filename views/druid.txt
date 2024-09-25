@@ -13,6 +13,7 @@ Skills:
 - Hunting:  @hunting_skill       @
 - Sneaking: @sneaking_skill      @
 - Skinning: @skinning_skill      @
+- Tracking: @tracking_skill      @
 
 Equipped:
 - Sword: 

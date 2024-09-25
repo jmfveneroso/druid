@@ -11,6 +11,15 @@ export function rollD(dSize) {
   return Math.floor(Math.random() * dSize) + 1;
 }
 
+export function dcCheck(skill, dc) {
+  return rollD(20) + skill >= dc;
+}
+
+export function probDcCheck(skill, dc) {
+  let result = (21 - (dc - skill)) / 20;
+  return result;
+}
+
 export function skillSuccessRate(skill, base_difficulty) {
   return skill / (base_difficulty + skill);
 }
@@ -102,6 +111,10 @@ export function popView(view_name) {
 }
 
 export function addMessage(msg) {
+  if (msg === undefined) {
+    return;
+  }
+
   GAME_STATE['msg'] = [msg].concat(GAME_STATE['msg']);
 }
 
@@ -318,6 +331,12 @@ export function druid(data) {
       increaseSkill('skinning_skill');
     }
   };
+  data['tracking_skill'] = {
+    'str': GAME_STATE['druid']['tracking_skill'],
+    'fn': function() {
+      increaseSkill('tracking_skill');
+    }
+  };
   return data;
 }
 
@@ -417,6 +436,36 @@ export function config(data) {
   return data;
 }
 
+export function setLoading(duration, message, next_view, pop = false) {
+  GAME_STATE['loading_bar'] = '';
+  GAME_STATE['loading_bar_message'] = message;
+  GAME_STATE['loading_next_view'] = next_view;
+  GAME_STATE['loading_bar_duration'] = duration;
+  GAME_STATE['loading_bar_pop'] = pop;
+
+  pushView('loading_bar');
+}
+
+export function loading_bar() {
+  const total_size = 44;
+
+  GAME_STATE['loading_bar'] += '=';
+  let progress = GAME_STATE['loading_bar'].length / total_size;
+  if (progress >= 1) {
+    popAndPushView(GAME_STATE['loading_next_view']);
+    run();
+    return {};
+  }
+
+  clearTimeout(GAME_STATE['refresh']);
+  GAME_STATE['refresh'] = setTimeout(function() {
+    run();
+  }, GAME_STATE['loading_bar_duration'] / total_size);
+
+  return {};
+}
+
+renderer.models['loading_bar'] = loading_bar;
 renderer.models['log'] = scrollable;
 renderer.models['stats'] = stats;
 renderer.models['druid'] = druid;

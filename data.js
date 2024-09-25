@@ -1,4 +1,5 @@
 export let GAME_STATE = {
+  'msg': [],
   'items': {
     'Tent': {value: 100, weight: 10},
     'Waterskin': {value: 5, weight: 1},
@@ -49,13 +50,12 @@ export let GAME_STATE = {
     'items': [
       {name: 'Tent', q: 1},
       {name: 'Waterskin', q: 1},
-      {name: 'Ration', q: 3},
+      {name: 'Ration', q: 30},
       {name: 'Arrows', q: 20},
       {name: 'Silver Sword', q: 1},
       {name: 'Silver Bow', q: 1},
       {name: 'Silver Armor', q: 1},
       {name: 'Silver Boots', q: 1},
-      {name: 'Rabbit Carcass', q: 1},
     ],
     'position': {'x': 3, 'y': 3},
     'ranged': {
@@ -82,8 +82,9 @@ export let GAME_STATE = {
     'sword_skill': 1,
     'hunting_skill': 1,
     'sneaking_skill': 1,
-    'bow_skill': 1,
     'skinning_skill': 1,
+    'tracking_skill': 1,
+    'bow_skill': 1,
     'skill_points': 10,
     'max_weight': 100,
   },

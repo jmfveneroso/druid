@@ -8,34 +8,64 @@ Object.assign(GAME_STATE, {
     {
       'name': 'Rabbit',
       'hp': 2,
-      'tracking_difficulty': 4,
-      'sneaking_difficulty': 2,
+      'tracking_difficulty': 12,
+      'chasing_difficulty': 8,
+      'sneaking_difficulty': 10,
       'size': 0,
       'rest': 15,
       'speed': 1,
       'fights': false,
       'loot': [
-        {name: 'Rabbit Carcass', q: 1 },
-        {name: 'Rabbit Pelt', q: 1 },
-        {name: 'Rabbit Foot', q: 1 }
-      ]
+        {name: 'Rabbit Carcass', q: 1}, {name: 'Rabbit Pelt', q: 1},
+        {name: 'Rabbit Foot', q: 1}
+      ],
+      'min_tracking_skill': 0,
     },
     {
       'name': 'Deer',
       'hp': 6,
-      'tracking_difficulty': 6,
-      'sneaking_difficulty': 8,
+      'tracking_difficulty': 15,
+      'chasing_difficulty': 10,
+      'sneaking_difficulty': 14,
       'size': 2,
       'rest': 5,
       'speed': 3,
       'fights': false,
-      'loot': [{name: 'Deer Pelt', q: 1, value: 50}]
+      'loot': [{name: 'Deer Pelt', q: 1, value: 50}],
+      'min_tracking_skill': 0,
+    },
+    {
+      'name': 'Boar',
+      'hp': 10,
+      'tracking_difficulty': 15,
+      'chasing_difficulty': 12,
+      'sneaking_difficulty': 14,
+      'size': 1,
+      'rest': 15,
+      'speed': 3,
+      'fights': false,
+      'loot': [{name: 'Wolf Pelt', q: 1, value: 100}],
+      'min_tracking_skill': 0,
+    },
+    {
+      'name': 'Fox',
+      'hp': 10,
+      'tracking_difficulty': 16,
+      'chasing_difficulty': 14,
+      'sneaking_difficulty': 16,
+      'size': 1,
+      'rest': 15,
+      'speed': 3,
+      'fights': false,
+      'loot': [{name: 'Wolf Pelt', q: 1, value: 100}],
+      'min_tracking_skill': 1,
     },
     {
       'name': 'Wolf',
       'hp': 10,
-      'tracking_difficulty': 8,
-      'sneaking_difficulty': 8,
+      'tracking_difficulty': 14,
+      'chasing_difficulty': 15,
+      'sneaking_difficulty': 18,
       'size': 1,
       'rest': 15,
       'speed': 3,
@@ -64,6 +94,23 @@ Object.assign(GAME_STATE, {
   'scroll_height': 0,
 });
 
+function getAnimal(animal_name) {
+  for (let animal of GAME_STATE['animals']) {
+    if (animal['name'] == animal_name) {
+      return animal;
+    }
+  }
+  return {};
+}
+
+function getCurrentEnv() {
+  const grid = GAME_STATE['map_grid'];
+  const druidX = GAME_STATE['druid']['position']['x'];
+  const druidY = GAME_STATE['druid']['position']['y'];
+  const square = grid[druidX][druidY];
+  return square['environment'];
+}
+
 export function getTrackingCost() {
   return GAME_STATE['tracking_cost'];
 }
@@ -78,8 +125,19 @@ export function damageAnimal(isCritical) {
   return dmg;
 }
 
-export function track() {
-  function trackingOutcome(animal, prob) {
+function getFrequencyBonus(frequency) {
+  return {
+    'none': -1000,
+    'sparse': -4,
+    'moderate': 0,
+    'plentiful': +4
+  }[frequency];
+}
+
+function getTrackableAnimals() {
+  let skill = GAME_STATE['druid']['tracking_skill'];
+
+  function outcome(animal) {
     if (_.isOverweight()) {
       _.addMessage(`You are overweight.`);
       return;
@@ -93,7 +151,7 @@ export function track() {
 
     _.addTime('2:00');
 
-    let success = _.roll(prob);
+    let success = _.dcCheck(skill, animal['chasing_difficulty']);
     if (!success) {
       _.addMessage(`You failed tracking the ${animal.name}.`);
       _.popView();
@@ -106,7 +164,8 @@ export function track() {
       'hp': animal.base_hp,
       'distance': 100,
     };
-    _.popAndPushView('sneak');
+    _.popView();
+    _.setLoading(2000, 'Tracking...', 'sneak', true);
     GAME_STATE['animal_pos'] = 10;
     GAME_STATE['shoot_cursor_pos'] = 0;
     GAME_STATE['shoot_cursor_direction'] = 1;
@@ -116,35 +175,53 @@ export function track() {
     GAME_STATE['animal_rest'] = 0;
   }
 
+  let env = getCurrentEnv();
+
+  let animals = [];
+  for (let animal of GAME_STATE['animals']) {
+    if (animal['min_tracking_skill'] > skill) {
+      continue;
+    }
+
+    let frequency = env['animals'][animal['name']];
+
+    let frequencyBonus = getFrequencyBonus(frequency);
+
+    let success =
+        _.dcCheck(skill + frequencyBonus, animal['tracking_difficulty']);
+    if (success) {
+      let prob = _.probDcCheck(skill, animal['chasing_difficulty']);
+      animals.push({
+        'name': animal['name'],
+        'prob': prob,
+        'fn': function() {
+          outcome(animal);
+        },
+      });
+    }
+  }
+
+  return animals;
+}
+
+export function track() {
   let env = GAME_STATE['current_env'];
 
   let template_data = {};
-  template_data['animals'] = [];
-  for (let i = 0; i < GAME_STATE['animals'].length; i++) {
-    let animal = GAME_STATE['animals'][i];
+  template_data['animals'] = getTrackableAnimals();
 
-    let skill = GAME_STATE['druid']['hunting_skill'];
-    let population = env.population[animal['name']];
-    let prob =
-        _.skillSuccessRate(skill * population, animal['tracking_difficulty']);
-
-    function outcome() {
-      return trackingOutcome(animal, prob);
-    }
-
-    template_data['animals'].push({
-      name: animal.name,
-      prob: prob,
-      fn: outcome,
-    });
+  if (template_data['animals'].length === 0) {
+    _.addMessage('You found no tracks.');
   }
 
   return template_data;
 }
 
 export function sneak() {
-  function sneakingOutcome(animal, prob) {
-    let success = _.roll(prob);
+  function sneakingOutcome(animal) {
+    let success =
+        _.dcCheck(_.getSneakingSkill(), animal['sneaking_difficulty']);
+
     if (!success) {
       _.addMessage(`The ${animal.name} escaped.`);
       _.popView();
@@ -152,7 +229,7 @@ export function sneak() {
     }
 
     _.addMessage(`You snuck close to the ${animal.name}.`);
-    GAME_STATE['animal_stats']['distance'] /= 2;
+    GAME_STATE['animal_stats']['distance'] = 70;
   }
 
   let template_data = {};
@@ -213,6 +290,7 @@ export function sneak() {
           let dmg = damageAnimal(false);
           if (animal['hp'] <= 0) {
             _.addMessage(`You did ${dmg} dmg and killed the ${animal.name}.`);
+            getCurrentEnv()['animals'][animal.name] -= 1;
             _.popAndPushView('loot');
           } else if (animal.fights) {
             _.addMessage(`You did ${dmg}, the ${animal.name} fights back.`);
@@ -238,13 +316,16 @@ export function sneak() {
 
   updateLoop();
 
-  let sneakProb = _.skillSuccessRate(
-      _.getSneakingSkill(),
-      animal['sneaking_difficulty']);
+  let sneakProb =
+      _.probDcCheck(_.getSneakingSkill(), animal['sneaking_difficulty']);
 
-  template_data['sneak_prob'] = function() {
-    return sneakingOutcome(animal, sneakProb);
-  };
+  if (distance < 100) {
+    sneakProb = "X";
+  } else {
+    template_data['sneak_prob'] = function() {
+      return sneakingOutcome(animal);
+    };
+  }
 
   template_data['prob'] = {str: sneakProb, fn: template_data['sneak_prob']};
   template_data['distance'] = distance.toString();
@@ -324,7 +405,7 @@ export function chase() {
         }
         GAME_STATE['animal_stats'] = {
           'hp': animal.hp,
-          'distance': 50,
+          'distance': 70,
         };
         _.addMessage(`You tracked the ${animal.name}.`);
         _.popAndPushView('sneak');
@@ -364,13 +445,37 @@ export function loot() {
 
 export function forest() {
   let template_data = {};
+  template_data['env'] = getCurrentEnv();
+
   template_data['hunt'] = function() {
-    _.pushView('hunt');
-    _.addMessage(GAME_STATE['track_msg']);
+    if (_.useAbility(getTrackingCost())) {
+      _.addTime('1:00');
+      _.addMessage('You spent some time finding tracks.');
+      _.setLoading(2000, 'Exploring...', 'hunt');
+    } else {
+      _.addMessage('You do not have enough stamina.');
+    }
   };
-  template_data['camp'] = function() {
-    _.pushView('camp');
-  };
+
+  let animals = template_data['env']['animals'];
+  template_data['animals'] = [];
+  for (let i = 0; i < Object.keys(animals).length; i++) {
+    let key = Object.keys(animals)[i];
+    let frequency = animals[key];
+    let animal = getAnimal(key);
+
+    let skill = GAME_STATE['druid']['tracking_skill'];
+    let frequencyBonus = getFrequencyBonus(frequency);
+
+    let prob =
+        _.probDcCheck(skill + frequencyBonus, animal['tracking_difficulty']);
+
+    template_data['animals'].push({
+      'name': key,
+      'population': frequency,
+      'prob': prob,
+    });
+  }
   return template_data;
 }
 

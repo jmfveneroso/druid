@@ -108,7 +108,7 @@ export class TemplateReader {
       value = value.str;
     }
     value = this.getValue(value);
-    if (value === undefined) {
+    if (value == undefined) {
       value = '';
     }
 
@@ -168,12 +168,22 @@ export class TemplateReader {
     }
 
     let value = this.getVar(list_name, data);
-
-    for (let j = 0; j < value.length; j++) {
-      let iterator = value[j];
-      data[name] = iterator;
-      this.processTemplateInternal(subLines, data);
-      delete data[name];
+    
+    if (Array.isArray(value)) {
+      for (let j = 0; j < value.length; j++) {
+        let iterator = value[j];
+        data[name] = iterator;
+        this.processTemplateInternal(subLines, data);
+        delete data[name];
+      }
+    } else if (value != undefined && typeof value === 'object') {
+      const keys = Object.keys(value);
+      for (let j = 0; j < keys.length; j++) {
+        const key = keys[j];
+        data[name] = { key: key, value: value[key] };
+        this.processTemplateInternal(subLines, data);
+        delete data[name];
+      }
     }
 
     return i;

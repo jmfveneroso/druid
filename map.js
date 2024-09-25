@@ -4,6 +4,23 @@ import {renderer} from './renderer.js';
 import * as _villages from './village.js';
 import * as _ from './yaml.js';
 
+const envTypes = ['Lake', 'Forest', 'Swamp', 'Mountain'];
+
+function createEnvironment(envType) {
+  let frequencies = [ 'none', 'sparse', 'moderate', 'plentiful' ];
+
+  return {
+    'type': envType,
+    'animals': {
+      'Rabbit': 'plentiful',
+      'Deer': 'plentiful',
+      'Wolf': 'plentiful',
+      'Boar': 'plentiful',
+      'Fox': 'plentiful',
+    }
+  };
+}
+
 function createMap(gridSize = 4) {
   function initializeGrid(environments) {
     let grid = [];
@@ -11,7 +28,7 @@ function createMap(gridSize = 4) {
       grid[i] = [];
       for (let j = 0; j < gridSize; j++) {
         let envType = Math.max(3 - i, 3 - j);
-        grid[i][j] = {'environment': environments[envType].name};
+        grid[i][j] = {'environment': createEnvironment(envTypes[envType])};
       }
     }
     return grid;
@@ -113,7 +130,9 @@ function getMapMatrix() {
 
   for (let i = 0; i < grid.length; i++) {
     for (let j = 0; j < grid[i].length; j++) {
-      const env_name = grid[i][j]['environment'];
+      const env = grid[i][j]['environment'];
+
+      const env_name = env['type'];
       let envSymbol = environmentSymbols[env_name];
 
       const village_index = grid[i][j]['village'];

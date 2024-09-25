@@ -248,6 +248,15 @@ House
 @template log msg
 >>> config
 
+<<< loading_bar
+
+@loading_bar_message                         @
++--------------------------------------------+
+|@loading_bar                               @|
++--------------------------------------------+
+
+>>> loading_bar
+
 <<< game_over
 GAME OVER
 >>> game_over
