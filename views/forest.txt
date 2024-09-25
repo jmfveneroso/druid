@@ -4,7 +4,7 @@
 @env.type                @
 
 @forv a in animals
-@a.name         @ @a.population@ @a.prob@
+@a.name         @ @a.has_special-@ @a.population@ @a.prob@
 @endforv                   @
 
 @onclick hunt

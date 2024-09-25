@@ -8,17 +8,32 @@ const envTypes = ['Lake', 'Forest', 'Swamp', 'Mountain'];
 
 function createEnvironment(envType) {
   let frequencies = [ 'none', 'sparse', 'moderate', 'plentiful' ];
-
-  return {
+  
+  let env = {
     'type': envType,
-    'animals': {
-      'Rabbit': 'plentiful',
-      'Deer': 'plentiful',
-      'Wolf': 'plentiful',
-      'Boar': 'plentiful',
-      'Fox': 'plentiful',
-    }
+    'animals': {},
   };
+
+  for (let animal of GAME_STATE['animals']) {
+    let dc = animal['frequency']['dc'];
+
+    let roll = _.rollD(20);
+
+    // Apply bonus;
+    let frequency = animal['frequency']['base'];
+    if (roll - dc >= 5) {
+      frequency++;
+    } else if (roll - dc <= -5) {
+      frequency--;
+    }
+
+    env['animals'][animal['name']] = {
+      'frequency': frequencies[frequency],
+      'has_special': 1,
+    };
+  }
+  
+  return env;
 }
 
 function createMap(gridSize = 4) {

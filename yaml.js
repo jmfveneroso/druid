@@ -17,6 +17,8 @@ export function dcCheck(skill, dc) {
 
 export function probDcCheck(skill, dc) {
   let result = (21 - (dc - skill)) / 20;
+  if (result < 0) return 0.0;
+  if (result > 1) return 1.0;
   return result;
 }
 
@@ -273,7 +275,7 @@ export function getDruidArmorClass() {
 
 export function getSneakingSkill() {
   return GAME_STATE['druid']['sneaking_skill'] +
-      GAME_STATE['druid']['boots']['bonus'] + 10;
+      GAME_STATE['druid']['boots']['bonus'];
 }
 
 export function rollMeleeDamage() {

@@ -112,15 +112,20 @@ export class TemplateReader {
       value = '';
     }
 
-    if (pad) {
-      let text = value.slice(0, max_length).padEnd(max_length);
+    try {
+      if (pad) {
+        let text = value.slice(0, max_length).padEnd(max_length);
+        this.writeToScreen(text, fn);
+        return k;
+      }
+
+      let text = value.slice(0, max_length);
       this.writeToScreen(text, fn);
       return k;
+    } catch (err) {
+      console.log('Error in ' + var_name);
+      return k;
     }
-
-    let text = value.slice(0, max_length);
-    this.writeToScreen(text, fn);
-    return k;
   }
 
   processTextLine(line, data) {
