@@ -1,6 +1,7 @@
 export let GAME_STATE = {
   'msg': [],
   'items': {
+    '': {value: 0, weight: 0},
     'Tent': {value: 100, weight: 10},
     'Waterskin': {value: 5, weight: 1},
     'Rabbit Pelt': {value: 10, weight: 2},
@@ -14,6 +15,7 @@ export let GAME_STATE = {
     'Silver Sword': {value: 100, weight: 5, base_die: 4, bonus: 3, type: 'melee'},
     'Copper Bow': {value: 50, weight: 5, base_die: 6, bonus: 0, type: 'ranged'},
     'Silver Bow': {value: 100, weight: 5, base_die: 6, bonus: 1, type: 'ranged'},
+    'Gun': {value: 100, weight: 5, base_die: 6, bonus: 1, type: 'ranged'},
     'Copper Armor': {value: 50, weight: 5, bonus: 1, type: 'armor'},
     'Silver Armor': {value: 100, weight: 5, bonus: 2, type: 'armor'},
     'Copper Boots': {value: 50, weight: 5, bonus: 1, type: 'boots'},
@@ -24,6 +26,7 @@ export let GAME_STATE = {
     'Deer* Carcass': {value: 50, weight: 50},
     'Boar Carcass': {value: 15, weight: 30},
     'Boar* Carcass': {value: 75, weight: 30},
+    'Arrows': {value: 1, weight: 0},
   },
   'enemies': {
     'wolf': {
@@ -54,11 +57,8 @@ export let GAME_STATE = {
       {name: 'Tent', q: 1},
       {name: 'Waterskin', q: 1},
       {name: 'Ration', q: 30},
-      {name: 'Arrows', q: 20},
-      {name: 'Silver Sword', q: 1},
-      {name: 'Silver Bow', q: 1},
-      {name: 'Silver Armor', q: 1},
-      {name: 'Silver Boots', q: 1},
+      {name: 'Arrows', q: 2},
+      {name: 'Gun', q: 1},
     ],
     'position': {'x': 3, 'y': 3},
     'ranged': {
@@ -87,13 +87,14 @@ export let GAME_STATE = {
     'sneaking_skill': 1,
     'skinning_skill': 1,
     'tracking_skill': 1,
-    'bow_skill': 1,
+    'bow_skill': 7,
     'skill_points': 10,
     'max_weight': 100,
   },
   'market': {
     'items': [
-      {name: 'Ration', q: 0, value: 5}, {name: 'Health Potion', q: 0, value: 5}
+      {name: 'Ration'}, 
+      {name: 'Arrows'}
     ],
   }
 };

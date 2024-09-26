@@ -56,6 +56,37 @@ export function isOverweight() {
   return getCurrentWeight() > GAME_STATE['druid']['max_weight'];
 }
 
+export function getArrowSpeed() {
+  if (getRangedWeapon() === "Gun") {
+    return 5;
+  }
+
+  if (getBowSkill() >= 7) {
+    return 2;
+  }
+  return 1;
+}
+
+export function hasDoubleArrows() {
+  if (getRangedWeapon() === "Gun") {
+    return false;
+  }
+
+  if (getBowSkill() >= 4) {
+    return true;
+  }
+  return false;
+}
+
+export function getItemData(item_name) {
+  let item = Object.assign({}, GAME_STATE['items']['']);
+  if (GAME_STATE['items'][item_name] !== undefined)  {
+    item = Object.assign({}, GAME_STATE['items'][item_name]);
+  }
+  item.name = item_name;
+  return item;
+}
+
 export function acquireItem(item_name, quantity) {
   // let addedWeight = getItemWeight(item_name) * quantity;
   // if (getCurrentWeight() + addedWeight > GAME_STATE['druid']['max_weight']) {
@@ -273,6 +304,10 @@ export function getDruidArmorClass() {
   return 10 + GAME_STATE['druid']['armor']['bonus'];
 }
 
+export function getBowSkill() {
+  return GAME_STATE['druid']['bow_skill'];
+}
+
 export function getSneakingSkill() {
   return GAME_STATE['druid']['sneaking_skill'] +
       GAME_STATE['druid']['boots']['bonus'];
@@ -342,6 +377,10 @@ export function druid(data) {
   return data;
 }
 
+export function getRangedWeapon() {
+  return GAME_STATE['druid']['ranged']['name'];
+}
+
 export function equipWeapon(item_name) {
   let item_data = GAME_STATE['items'][item_name];
 
@@ -354,6 +393,12 @@ export function equipWeapon(item_name) {
 }
 
 export function equipRangedWeapon(item_name) {
+  if (item_name === 'Gun' && getBowSkill() < 10) {
+    addMessage('You need bow > 10 to wield a gun.');
+    return;
+  }
+  
+
   let item_data = GAME_STATE['items'][item_name];
 
   consumeItem(item_name);

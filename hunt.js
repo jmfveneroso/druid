@@ -89,7 +89,10 @@ function getTrackableAnimals() {
     GAME_STATE['shoot_cursor_pos'] = 0;
     GAME_STATE['shoot_cursor_direction'] = 1;
     GAME_STATE['has_shot'] = false;
+    GAME_STATE['has_shot_2nd'] = false;
     GAME_STATE['arrow_pos'] = undefined;
+    GAME_STATE['arrow2_pos'] = undefined;
+    GAME_STATE['arrow2_pos_delay'] = 0;
     GAME_STATE['animal_goal'] = 10;
     GAME_STATE['animal_rest'] = 0;
   }
@@ -159,9 +162,12 @@ export function sneak() {
   let animal_pos = GAME_STATE['animal_pos'];
   let cursor_pos = GAME_STATE['shoot_cursor_pos'];
   let arrow_pos = GAME_STATE['arrow_pos'];
+  let arrow2_pos = GAME_STATE['arrow2_pos'];
   let length = 29;
   let animal_goal = GAME_STATE['animal_goal'];
   let is_special = GAME_STATE['animal_stats']['is_special'];
+
+  let max_y = Math.floor((distance / 100) * 15);
 
   function updateLoop() {
     if (animal_pos === animal_goal) {
@@ -203,15 +209,34 @@ export function sneak() {
         _.addMessage(`The ${animal.name} ran away.`);
         _.popView();
       }
-    } else {
-      arrow_pos[1] -= 1;
-      arrow_pos[1] = Math.max(0, arrow_pos[1]);
-      if (arrow_pos[1] == 0) {
+    }
+
+    if (GAME_STATE['arrow2_pos_delay'] > 0) {
+      if (--GAME_STATE['arrow2_pos_delay'] == 0) {
+        GAME_STATE['arrow2_pos'] = [cursor_pos, max_y];
+      }
+    }
+
+    let both_out = true;
+    for (let i = 0; i < 2; i++) {
+      let pos = i == 0 ? arrow_pos : arrow2_pos;
+      if (pos === undefined) {
+        continue;
+      }
+
+      pos[1] -= _.getArrowSpeed();
+      pos[1] = Math.max(0, pos[1]);
+      if (pos[1] == 0) {
         GAME_STATE['has_shot'] = false;
-        GAME_STATE['arrow_pos'] = undefined;
-        if (arrow_pos[0] >= animal_pos + animal_lft &&
-            arrow_pos[0] <= animal_pos + animal_rgt) {
-          // if (Math.abs(arrow_pos[0] - animal_pos) <= animal.size) {
+        if (i == 0) {
+          GAME_STATE['arrow_pos'] = undefined;
+        } else {
+          GAME_STATE['arrow2_pos'] = undefined;
+        }
+
+        if (pos[0] >= animal_pos + animal_lft &&
+            pos[0] <= animal_pos + animal_rgt) {
+          // if (Math.abs(pos[0] - animal_pos) <= animal.size) {
           let dmg = damageAnimal(false);
           if (animal['hp'] <= 0) {
             _.addMessage(`You did ${dmg} dmg and killed the ${animal.name}.`);
@@ -226,15 +251,20 @@ export function sneak() {
             _.popAndPushView('chase');
             _.addTime('1:00');
           }
-        } else {
-          if (animal.fights) {
-            _.addMessage(`The ${animal.name} is aggressive.`);
-            _.popAndPushView('battle');
-          } else {
-            _.addMessage(`You missed the ${animal.name}.`);
-            _.popView();
-          }
+          both_out = false;
         }
+      } else {
+        both_out = false;
+      }
+    }
+
+    if ((arrow_pos || arrow2_pos) && both_out) {
+      if (animal.fights) {
+        _.addMessage(`The ${animal.name} is aggressive.`);
+        _.popAndPushView('battle');
+      } else {
+        _.addMessage(`You missed the ${animal.name}.`);
+        _.popView();
       }
     }
   }
@@ -262,6 +292,9 @@ export function sneak() {
   for (let x = 0; x < 30; x++) {
     if (arrow_pos !== undefined && arrow_pos[0] == x && arrow_pos[1] == 0) {
       template_data['animal_matrix'][0] += '|';
+    } else if (
+        arrow2_pos !== undefined && arrow2_pos[0] == x && arrow2_pos[1] == 0) {
+      template_data['animal_matrix'][0] += '|';
     } else if (x >= animal_pos + animal_lft && x <= animal_pos + animal_rgt) {
       // } else if (Math.abs(x - animal_pos) <= animal.size) {
       if (is_special) {
@@ -274,15 +307,22 @@ export function sneak() {
     }
   }
 
-  let max_y = Math.floor((distance / 100) * 15);
-
   for (let y = 1; y < max_y; y++) {
     template_data['animal_matrix'].push('');
     for (let x = 0; x < 30; x++) {
       let arrow_pos = GAME_STATE['arrow_pos'];
+      let arrow2_pos = GAME_STATE['arrow2_pos'];
       if (arrow_pos !== undefined) {
         let arrow_x = arrow_pos[0];
         let arrow_y = arrow_pos[1];
+        if (x === arrow_x && y === arrow_y) {
+          template_data['animal_matrix'][y] += '|';
+          continue;
+        }
+      }
+      if (arrow2_pos !== undefined) {
+        let arrow_x = arrow2_pos[0];
+        let arrow_y = arrow2_pos[1];
         if (x === arrow_x && y === arrow_y) {
           template_data['animal_matrix'][y] += '|';
           continue;
@@ -307,14 +347,27 @@ export function sneak() {
     if (GAME_STATE['has_shot']) {
       return;
     }
+
+    if (!_.consumeItem('Arrows')) {
+      _.addMessage(`You are out of arrows.`);
+      return;
+    }
+
     GAME_STATE['has_shot'] = true;
+    GAME_STATE['has_shot_2nd'] = false;
     GAME_STATE['arrow_pos'] = [cursor_pos, max_y];
+
+    if (_.hasDoubleArrows()) {
+      GAME_STATE['arrow2_pos_delay'] = 2;
+    }
   }
 
   clearTimeout(GAME_STATE['refresh']);
   GAME_STATE['refresh'] = setTimeout(function() {
     run();
   }, 100);
+
+  template_data['arrows'] = _.getItemQuantity('Arrows');
 
   return template_data;
 }

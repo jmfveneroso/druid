@@ -177,7 +177,7 @@ function createVillageMap(village, this_width = 42, this_height = 20) {
   arr = shuffleArray(arr);
 
   placeTemple(x, y, arr[0], 'temple');
-  placeMarket(x, y, arr[1], 'market_buy');
+  placeMarket(x, y, arr[1], 'market_sell');
   placeBlacksmith('blacksmith');
   placeFields();
   placeHouses();
@@ -277,16 +277,18 @@ function marketBuy() {
     _.popAndPushView('market_sell');
   };
 
-  data['market_items'] = GAME_STATE['market']['items'];
-  for (let item of data['market_items']) {
-    item['q'] = _.getItemQuantity(item['name']);
+  data['market_items'] = [];
+  for (let item of GAME_STATE['market']['items']) {
+    item = _.getItemData(item.name);
+    item['q'] = _.getItemQuantity(item.name);
     item['buy'] = function() {
       if (_.spendGold(item['value'])) {
-        _.acquireItem(item, 1);
+        _.acquireItem(item.name, 1);
       } else {
         _.addMessage('You do not have enough gold.');
       }
-    }
+    };
+    data['market_items'].push(item);
   }
   return data;
 }
@@ -297,13 +299,17 @@ function marketSell() {
     _.popAndPushView('market_buy');
   };
 
-  data['druid_items'] = GAME_STATE['druid']['items'];
-  for (let item of data['druid_items']) {
+  data['druid_items'] = [];
+  for (let item of GAME_STATE['druid']['items']) {
+    item = _.getItemData(item['name']);
+    item['q'] = _.getItemQuantity(item.name);
     item['sell'] = function() {
       _.earnGold(item['value']);
       _.consumeItem(item['name']);
-    }
+    };
+    data['druid_items'].push(item);
   }
+  console.log(data['druid_items']);
   return data;
 }
 
