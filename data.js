@@ -48,6 +48,7 @@ export let GAME_STATE = {
     }
   },
   'hours': '#1 8:00',
+  'show_leave': true,
   'gold': 100,
   'stamina': 100,
   'max_stamina': 100,
@@ -86,7 +87,7 @@ export let GAME_STATE = {
     'hunting_skill': 1,
     'sneaking_skill': 1,
     'skinning_skill': 1,
-    'tracking_skill': 1,
+    'tracking_skill': 20,
     'bow_skill': 7,
     'skill_points': 10,
     'max_weight': 100,

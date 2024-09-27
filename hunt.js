@@ -60,41 +60,41 @@ function getTrackableAnimals() {
       return;
     }
 
-    _.addTime('2:00');
+    _.setLoading(1000, 'Tracking...', '2:00', function () {
+      let success = _.dcCheck(skill, animal['chasing_difficulty']);
+      if (!success) {
+        _.addMessage(`You failed to track the ${animal.name}.`);
+        return;
+      }
 
-    let success = _.dcCheck(skill, animal['chasing_difficulty']);
-    if (!success) {
-      _.addMessage(`You failed to track the ${animal.name}.`);
-      _.popView();
-      return;
-    }
+      _.pushView('sneak');
 
-    let frequency = env['animals'][animal['name']];
-    let is_special = frequency['has_special'];
-    if (is_special) {
-      // is_special = _.rollD(5) == 5;
-      is_special = true;
-    }
+      let frequency = env['animals'][animal['name']];
+      let is_special = frequency['has_special'];
+      if (is_special) {
+        // is_special = _.rollD(5) == 5;
+        is_special = true;
+      }
 
-    _.addMessage(`You tracked the ${animal.name}.`);
-    GAME_STATE['animal'] = Object.assign({}, animal);
-    GAME_STATE['animal_stats'] = {
-      'hp': animal.base_hp,
-      'distance': 100,
-      'is_special': is_special,
-    };
-    _.popView();
-    _.setLoading(2000, 'Tracking...', 'sneak', true);
-    GAME_STATE['animal_pos'] = 10;
-    GAME_STATE['shoot_cursor_pos'] = 0;
-    GAME_STATE['shoot_cursor_direction'] = 1;
-    GAME_STATE['has_shot'] = false;
-    GAME_STATE['has_shot_2nd'] = false;
-    GAME_STATE['arrow_pos'] = undefined;
-    GAME_STATE['arrow2_pos'] = undefined;
-    GAME_STATE['arrow2_pos_delay'] = 0;
-    GAME_STATE['animal_goal'] = 10;
-    GAME_STATE['animal_rest'] = 0;
+      _.addMessage(`You tracked the ${animal.name}.`);
+      GAME_STATE['animal'] = Object.assign({}, animal);
+      GAME_STATE['animal_stats'] = {
+        'hp': animal.base_hp,
+        'distance': 100,
+        'is_special': is_special,
+      };
+
+      GAME_STATE['animal_pos'] = 10;
+      GAME_STATE['shoot_cursor_pos'] = 0;
+      GAME_STATE['shoot_cursor_direction'] = 1;
+      GAME_STATE['has_shot'] = false;
+      GAME_STATE['has_shot_2nd'] = false;
+      GAME_STATE['arrow_pos'] = undefined;
+      GAME_STATE['arrow2_pos'] = undefined;
+      GAME_STATE['arrow2_pos_delay'] = 0;
+      GAME_STATE['animal_goal'] = 10;
+      GAME_STATE['animal_rest'] = 0;
+    });
   }
 
   let animals = [];
@@ -438,9 +438,10 @@ export function forest() {
 
   template_data['hunt'] = function() {
     if (_.useAbility(getTrackingCost())) {
-      _.addTime('1:00');
       _.addMessage('You spent some time finding tracks.');
-      _.setLoading(2000, 'Exploring...', 'hunt');
+      _.setLoading(1000, 'Exploring...', '1:00', function () {
+        _.pushView('hunt');
+      });
     } else {
       _.addMessage('You do not have enough stamina.');
     }
@@ -473,23 +474,29 @@ export function forest() {
 
 export function camp() {
   let template_data = {};
+  
   template_data['rest'] = function() {
-    _.setTimeNextDay('6:00');
-    GAME_STATE['stamina'] = 100;
+    let current_time = _.timeToFloat(GAME_STATE['hours']);
+    let new_time = _.timeToFloat(_.getTimeNextDay('6:00'));
+    let time_diff = _.floatToTime(new_time - current_time);
 
-    let success = _.roll(GAME_STATE['encounter_prob']);
-    if (success) {
-      _.popAndPushView('battle');
-      return;
-    }
+    _.setLoading(3000, 'Exploring...', time_diff, function () {
+      GAME_STATE['stamina'] = 100;
 
-    if (!_.consumeItem('Ration')) {
-      _.addMessage('You do not have enough rations.');
-      return;
-    }
+      let success = _.roll(GAME_STATE['encounter_prob']);
+      if (success) {
+        _.popAndPushView('battle');
+        return;
+      }
 
-    _.addMessage('You rested until the next morning.');
-    _.popView();
+      if (!_.consumeItem('Ration')) {
+        _.addMessage('You do not have enough rations.');
+        return;
+      }
+
+      _.addMessage('You rested until the next morning.');
+      _.popView();
+    });
   };
 
   template_data['rations'] = _.getItemQuantity('Ration');

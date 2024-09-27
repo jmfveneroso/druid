@@ -57,7 +57,7 @@ export function isOverweight() {
 }
 
 export function getArrowSpeed() {
-  if (getRangedWeapon() === "Gun") {
+  if (getRangedWeapon() === 'Gun') {
     return 5;
   }
 
@@ -68,7 +68,7 @@ export function getArrowSpeed() {
 }
 
 export function hasDoubleArrows() {
-  if (getRangedWeapon() === "Gun") {
+  if (getRangedWeapon() === 'Gun') {
     return false;
   }
 
@@ -80,7 +80,7 @@ export function hasDoubleArrows() {
 
 export function getItemData(item_name) {
   let item = Object.assign({}, GAME_STATE['items']['']);
-  if (GAME_STATE['items'][item_name] !== undefined)  {
+  if (GAME_STATE['items'][item_name] !== undefined) {
     item = Object.assign({}, GAME_STATE['items'][item_name]);
   }
   item.name = item_name;
@@ -155,8 +155,40 @@ export function clearMessages() {
   GAME_STATE['msg'] = [];
 }
 
-export function addTime(addTime) {
-  let timeString = GAME_STATE['hours'];
+export function timeToFloat(timeWithDay) {
+  let dayNumber = 0;  // Default day is 0 if no day part is given
+  let timePart;
+
+  // Check if the string contains a day part (starts with #)
+  if (timeWithDay.startsWith('#')) {
+    const [dayPart, time] = timeWithDay.split(' ');
+    dayNumber = parseInt(dayPart.slice(1)) - 1;  // Convert day to 0-based index
+    timePart = time;
+  } else {
+    timePart = timeWithDay;
+  }
+
+  const [hours, minutes] = timePart.split(':').map(Number);
+
+  return dayNumber * 24 + hours +
+      (minutes / 60);  // Calculate total hours including previous days
+}
+
+export function floatToTime(floatValue) {
+  const day = Math.floor(floatValue / 24) + 1;  // Get day number
+  const remainingHours = floatValue % 24;
+  const hours = Math.floor(remainingHours);
+  const minutes = Math.round((remainingHours - hours) * 60);
+  const timePart = `${hours}:${minutes.toString().padStart(2, '0')}`;
+
+  return `#${day} ${timePart}`;
+}
+
+export function addTime2(timeString, addTime) {
+  if (addTime.startsWith('#')) {
+    const [, time] = addTime.split(' ');
+    addTime = time;
+  }
 
   let [dayPart, timePart] = timeString.split(' ');
   let day = parseInt(dayPart.slice(1));
@@ -176,11 +208,14 @@ export function addTime(addTime) {
   let newDay = day + extraDays;
 
   let formattedTime = `${newHours}:${newMinutes.toString().padStart(2, '0')}`;
-
-  GAME_STATE['hours'] = `#${newDay} ${formattedTime}`;
+  return `#${newDay} ${formattedTime}`;
 }
 
-export function setTimeNextDay(newTime) {
+export function addTime(addTime) {
+  GAME_STATE['hours'] = addTime2(GAME_STATE['hours'], addTime);
+}
+
+export function getTimeNextDay(newTime) {
   let timeString = GAME_STATE['hours'];
 
   let [dayPart, timePart] = timeString.split(' ');
@@ -188,7 +223,11 @@ export function setTimeNextDay(newTime) {
 
   let newDay = day + 1;
 
-  GAME_STATE['hours'] = `#${newDay} ${newTime}`;
+  return `#${newDay} ${newTime}`;
+}
+
+export function setTimeNextDay(newTime) {
+  GAME_STATE['hours'] = getTimeNextDay(newTime);
 }
 
 export function spendGold(cost) {
@@ -284,12 +323,18 @@ export function stats(data) {
       pushView('inventory');
     }
   };
-  data['leave'] = {
-    str: '[--X--]',
-    fn: function() {
-      popView();
-    }
-  };
+
+  if (GAME_STATE['show_leave']) {
+    data['leave'] = {
+      str: '[--X--]',
+      fn: function() {
+        popView();
+      }
+    };
+  } else {
+    data['leave'] = '_______';
+  }
+
   data['config'] = {
     str: '[+]',
     fn: function() {
@@ -397,7 +442,7 @@ export function equipRangedWeapon(item_name) {
     addMessage('You need bow > 10 to wield a gun.');
     return;
   }
-  
+
 
   let item_data = GAME_STATE['items'][item_name];
 
@@ -483,24 +528,41 @@ export function config(data) {
   return data;
 }
 
-export function setLoading(duration, message, next_view, pop = false) {
+export function setLoading(duration, message, hours, fn) {
   GAME_STATE['loading_bar'] = '';
   GAME_STATE['loading_bar_message'] = message;
-  GAME_STATE['loading_next_view'] = next_view;
+  GAME_STATE['loading_fn'] = fn;
   GAME_STATE['loading_bar_duration'] = duration;
-  GAME_STATE['loading_bar_pop'] = pop;
+  GAME_STATE['loading_bar_hours'] = hours;
+  GAME_STATE['loading_bar_initial_hour'] = GAME_STATE['hours'];
+  GAME_STATE['show_leave'] = false;
 
   pushView('loading_bar');
 }
 
 export function loading_bar() {
   const total_size = 44;
-
   GAME_STATE['loading_bar'] += '=';
   let progress = GAME_STATE['loading_bar'].length / total_size;
+
+  let current_hour = timeToFloat(GAME_STATE['loading_bar_initial_hour']);
+  let hour_increment = timeToFloat(GAME_STATE['loading_bar_hours']);
+  let new_hour = floatToTime(current_hour + hour_increment * progress);
+
+  GAME_STATE['hours'] = new_hour;
   if (progress >= 1) {
-    popAndPushView(GAME_STATE['loading_next_view']);
-    run();
+    GAME_STATE['show_leave'] = true;
+    console.log(GAME_STATE['loading_bar_initial_hour']);
+    console.log(GAME_STATE['loading_bar_hours']);
+    new_hour = addTime2(
+        GAME_STATE['loading_bar_initial_hour'],
+        GAME_STATE['loading_bar_hours']);
+    console.log(new_hour);
+    GAME_STATE['hours'] = addTime2(
+        GAME_STATE['loading_bar_initial_hour'],
+        GAME_STATE['loading_bar_hours']);
+    popView();
+    GAME_STATE['loading_fn']();
     return {};
   }
 

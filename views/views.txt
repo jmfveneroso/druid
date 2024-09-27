@@ -249,6 +249,7 @@ House
 >>> config
 
 <<< loading_bar
+@template stats
 
 @loading_bar_message                         @
 +--------------------------------------------+
