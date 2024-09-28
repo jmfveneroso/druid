@@ -482,7 +482,7 @@ export function inventory(data) {
   let items = [];
   for (let item of GAME_STATE['druid'].items) {
     item['w'] = item.q * getItemWeight(item.name);
-    item['value'] = getItemValue(item.name);
+    item['v'] = getItemValue(item.name);
     item['fn'] = function() {
       let item_data = GAME_STATE['items'][item.name];
       switch (item_data['type']) {
@@ -552,12 +552,9 @@ export function loading_bar() {
   GAME_STATE['hours'] = new_hour;
   if (progress >= 1) {
     GAME_STATE['show_leave'] = true;
-    console.log(GAME_STATE['loading_bar_initial_hour']);
-    console.log(GAME_STATE['loading_bar_hours']);
     new_hour = addTime2(
         GAME_STATE['loading_bar_initial_hour'],
         GAME_STATE['loading_bar_hours']);
-    console.log(new_hour);
     GAME_STATE['hours'] = addTime2(
         GAME_STATE['loading_bar_initial_hour'],
         GAME_STATE['loading_bar_hours']);

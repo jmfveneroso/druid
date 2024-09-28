@@ -48,7 +48,9 @@ export class TemplateReader {
   }
 
   getValue(value) {
-    if (Number.isInteger(value)) {
+    if (typeof value === 'string') {
+      return value;
+    } else if (Number.isInteger(value)) {
       return value.toString();
     } else if (!isNaN(value)) {
       return parseFloat(value).toFixed(2);
@@ -108,7 +110,8 @@ export class TemplateReader {
       value = value.str;
     }
     value = this.getValue(value);
-    if (value == undefined) {
+
+    if (value === undefined) {
       value = '';
     }
 
@@ -123,7 +126,6 @@ export class TemplateReader {
       this.writeToScreen(text, fn);
       return k;
     } catch (err) {
-      console.log('Error in ' + var_name);
       return k;
     }
   }
@@ -301,7 +303,7 @@ export class TemplateReader {
       let scroll_y = readTemp('scroll_y', counter) || 0;
       
       let fn = function () {
-        console.log('Shit happens');
+        console.log('Test');
       };
 
       let reader = this.renderer.renderTemplate(
@@ -468,7 +470,6 @@ export class Renderer {
   }
 
   async loadViews() {
-    console.log('views');
     try {
       // Fetch the list of files from the directory
       const response = await fetch('/list-views');
