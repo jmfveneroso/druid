@@ -1,8 +1,8 @@
 <<< stats
 @hours   -@               @config-@              Gold: @gold-@ 
 @stamina_bar               @ @hp_bar                 @ 
+@food_bar     @                            @leave-@
 @char_click-@ @inventory_click-@                                @leave-@
-                                           @leave-@
                     
 >>> stats
 
@@ -41,16 +41,22 @@
 >>> chase
 
 <<< enemy1
-@matrix enemy1_matrix
-HP: @enemy1.hp
+@onclick attack0
+@matrix enemy0_matrix
+@endonclick
+# HP: @battle_enemies[0].hp
 >>> enemy1
 
 <<< enemy2
-
+@onclick attack1
+@matrix enemy1_matrix
+@endonclick
 >>> enemy2
 
 <<< enemy3
-
+@onclick attack2
+@matrix enemy2_matrix
+@endonclick
 >>> enemy3
 
 <<< atk
@@ -84,12 +90,11 @@ HP: @enemy1.hp
 %           %  %           %  %           %
 %           ;  %           ;  %           ;
 
-
-
-%box atk    %  %box rest   %
-%           %  %           %
-%           %  %           %
-%           ;  %           ;
+@onclick escape
++-------------------------------------+
+|               ESCAPE                |
++-------------------------------------+
+@endonclick
 
 @template log battle_msg
 
@@ -98,18 +103,72 @@ HP: @enemy1.hp
 <<< camp
 @template stats
 
+Sleeping spot: @sleeping_spot@
+@if camp_setup
+CAMP set up.
+@endif
+@if bonfire_lit
+Bonfire lit.
+@endif
+Random encounter chance: @random_encounter@
+
 @onclick rest
 +-------------------------------------+
-|               REST                  |
+|           REST: @rate @             |
 +-------------------------------------+
 @endonclick
 
+@onclick find_spot
++-------------------------------------+
+|         FIND CAMPING SPOT           |
++-------------------------------------+
+@endonclick
+
+@ifnot camp_setup
+@onclick setup_camp
++-------------------------------------+
+|             SETUP CAMP              |
++-------------------------------------+
+@endonclick
+@endifnot
+@ifnot bonfire_lit
+@onclick light_bonfire
++-------------------------------------+
+|           LIGHT BONFIRE             |
++-------------------------------------+
+@endonclick
+@endifnot
+
+@onclick skin
++-------------------------------------+
+|               SKIN                  |
++-------------------------------------+
+@ednonclick
+
+@onclick eat
 +-------------------------------------+
 | Rations: @rations                 @ |
 +-------------------------------------+
+@ednonclick
 
 @template log msg
 >>> camp
+
+<<< skin
+@template stats
+
++--------------------------------------+
+| SKINNING                             |
++-------+------------------+-----------+
+| Qnty  | Name             | Value     |
++-------+------------------+-----------+
+@forv i in items
+@onclick i.fn
+| @i.q@ | @i.name        @ | @i.value@ |
+@endonclick
+@endforv
++-------+------------------+-----------+
+>>> skin
 
 <<< enter
 @onclick enter
@@ -195,7 +254,20 @@ HP: @enemy1.hp
 <<< blacksmith
 @template stats
 
-Blacksmith
+++++++++++++++++++++++++++++++++++++++++++++++
++                BLACKSMITH                  +
+++++++++++++++++++++++++++++++++++++++++++++++
+
++------------------------+-----------+-------+
+| Name                   | Value     | Qnty  |
++------------------------+-----------+-------+
+@endonclick
+@forv i in blacksmith_items
+@onclick i.buy
+| @i.name              @ | @i.value@ | @i.q@ |
+@endonclick
+@endforv
++------------------------+-----------+-------+
 
 @template log msg
 >>> blacksmith
@@ -203,7 +275,22 @@ Blacksmith
 <<< temple
 @template stats
 
-Temple
+++++++++++++++++++++++++++++++++++++++++++++++
++                BLACKSMITH                  +
+++++++++++++++++++++++++++++++++++++++++++++++
+
+@onclick heal
++-------------------------------------+
+|                HEAL                 |
++-------------------------------------+
+@endonclick
+
+@onclick gain_level
++-------------------------------------+
+|       GAIN LEVEL (@level_cost@)     |
++-------------------------------------+
+@endonclick
+
 
 @template log msg
 >>> temple
@@ -263,6 +350,10 @@ House
 <<< game_over
 GAME OVER
 >>> game_over
+
+<<< win
+YOU WON!
+>>> win
 
 <<< test
 1234567890X1234567890Y1234567890

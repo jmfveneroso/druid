@@ -133,6 +133,11 @@ function getMapMatrix() {
       return;
     }
 
+    if (_.roll(0.2)) {
+      _.pushView('battle');
+      return;
+    }
+
     GAME_STATE['druid']['position']['x'] = x;
     GAME_STATE['druid']['position']['y'] = y;
     _.addTime('6:00');

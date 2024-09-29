@@ -309,7 +309,6 @@ function marketSell() {
     };
     data['druid_items'].push(item);
   }
-  console.log(data['druid_items']);
   return data;
 }
 
@@ -325,7 +324,57 @@ function house() {
   return data;
 }
 
+function blacksmith() {
+  let data = {};
+
+  data['blacksmith_items'] = [];
+  for (let item of GAME_STATE['blacksmith_items']) {
+    item = _.getItemData(item['name']);
+    item['q'] = _.getItemQuantity(item.name);
+    item['buy'] = function() {
+      if (_.spendGold(item['value'])) {
+        _.acquireItem(item.name, 1);
+      } else {
+        _.addMessage('You do not have enough gold.');
+      }
+    };
+    data['blacksmith_items'].push(item);
+  }
+  return data;
+}
+
+function temple() {
+  let data = {};
+
+  data['heal'] = function () {
+    if (_.spendGold(100)) {
+      GAME_STATE['druid']['hp'] = GAME_STATE['druid']['max_hp'];
+      GAME_STATE['druid']['food'] = GAME_STATE['druid']['max_food'];
+    } else {
+      _.addMessage('You do not have enough gold.');
+    }
+    
+  };
+ 
+  let level_cost = GAME_STATE['druid']['level'] * 50;
+  data['level_cost'] = level_cost;
+  data['gain_level'] = function () {
+    if (_.spendGold(level_cost)) {
+      GAME_STATE['druid']['level'] += 1;
+      GAME_STATE['druid']['max_hp'] += 2;
+      GAME_STATE['druid']['hp'] += 2;
+      GAME_STATE['druid']['skill_points'] += 5;
+    } else {
+      _.addMessage('You do not have enough gold.');
+    }
+  };
+
+  return data;
+}
+
 renderer.models['village'] = renderVillage;
 renderer.models['market_buy'] = marketBuy;
 renderer.models['market_sell'] = marketSell;
 renderer.models['house'] = house;
+renderer.models['blacksmith'] = blacksmith;
+renderer.models['temple'] = temple;

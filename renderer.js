@@ -196,6 +196,62 @@ export class TemplateReader {
     return i;
   }
 
+  processIf(lines, i, data, negation = false) {
+    let [, name] = lines[i].split(' ');
+
+    let subLines = [];
+    let opening_ifs = 0;
+    for (; i < lines.length; i++) {
+      let line = lines[i];
+      if (line.length === 0) {
+        subLines.push(line);
+        continue;
+      }
+
+      if (line[0] === '@') {
+        let control_word = line.split(' ')[0].trim();
+        if (negation) {
+          switch (control_word) {
+            case '@ifnot':
+              opening_ifs++;
+              break;
+            case '@endifnot':
+              opening_ifs--;
+              break;
+            default:
+              subLines.push(line);
+              break;
+          }
+        } else {
+          switch (control_word) {
+            case '@if':
+              opening_ifs++;
+              break;
+            case '@endif':
+              opening_ifs--;
+              break;
+            default:
+              subLines.push(line);
+              break;
+          }
+        }
+      } else {
+        subLines.push(line);
+      }
+      if (opening_ifs === 0) {
+        break;
+      }
+    }
+
+    let value = this.getVar(name, data);
+    
+    if ((negation && !value) || (!negation && value)) {
+      this.processTemplateInternal(subLines, data);
+    }
+
+    return i;
+  }
+
   processTemplateInternal(lines, data) {
     let x = this.parent_x;
     let y = this.parent_y + this.current_line;
@@ -394,6 +450,12 @@ export class TemplateReader {
             break;
           case '@endonclick':
             this.processEndOnClick(line, data);
+            break;
+          case '@if':
+            i = this.processIf(lines, i, data, /*negation=*/ false);
+            break;
+          case '@ifnot':
+            i = this.processIf(lines, i, data, /*negation=*/ true);
             break;
           default:
             this.processTextLine(line, data);

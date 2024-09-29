@@ -8,7 +8,8 @@ export function roll(difficulty) {
 }
 
 export function rollD(dSize) {
-  return Math.floor(Math.random() * dSize) + 1;
+  let result = Math.floor(Math.random() * dSize) + 1;
+  return result;
 }
 
 export function dcCheck(skill, dc) {
@@ -130,11 +131,23 @@ export function getItemQuantity(item_name) {
 
 export function pushView(view_name) {
   GAME_STATE['views'].push(view_name);
+
+  try {
+    if (renderer.models[view_name]) {
+      let data = {};
+      data = renderer.models[view_name](data, 0);
+      if (data['on_start']) {
+        data['on_start']();
+      }
+    }
+  } catch (e) {
+    console.log(e);
+  }
 }
 
 export function popAndPushView(view_name) {
   GAME_STATE['views'].pop();
-  GAME_STATE['views'].push(view_name);
+  pushView(view_name);
 }
 
 export function popView(view_name) {
@@ -211,8 +224,96 @@ export function addTime2(timeString, addTime) {
   return `#${newDay} ${formattedTime}`;
 }
 
+export function setTime(time) {
+  if (!GAME_STATE['resting']) {
+    let base = Math.floor(timeToFloat(GAME_STATE['hours']) / 24);
+    let test = Math.floor(timeToFloat(time) / 24);
+    if (base != test) {
+      rest(/*forced=*/ true);
+      return false;
+    }
+  }
+
+  GAME_STATE['hours'] = time;
+  return true;
+}
+
+export function getStaminaRecoveryRate() {
+  let spot_bonus = {
+    'poor': -20,
+    'normal': 0,
+    'nice': 20,
+  }[GAME_STATE['sleeping_spot']];
+
+  let skill = GAME_STATE['druid']['camping_skill'];
+  let bonus_multiplier = 1;
+  if (skill >= 4) {
+    bonus_multiplier = 2;
+  } else if (skill >= 7) {
+    bonus_multiplier = 3;
+  } else if (skill >= 10) {
+    bonus_multiplier = 4;
+  }
+
+  let camp_bonus = GAME_STATE['camp_setup'] ? 20 * bonus_multiplier : 0;
+  let fire_bonus = GAME_STATE['bonfire_lit'] ? 20 * bonus_multiplier : 0;
+  return 40 + spot_bonus + camp_bonus + fire_bonus;
+}
+
+export function getRandomEncounterChance() {
+  let fire_bonus = GAME_STATE['bonfire_lit'] ? 0.2 : 0.0;
+  return 0.2 + fire_bonus;
+}
+
+export function hitDruid(dmg) {
+  GAME_STATE['druid']['hp'] -= Math.min(dmg, GAME_STATE['druid']['hp']);
+  addMessage(`(${roll}) The wolf inflicted ${dmg} damage.`);
+  if (GAME_STATE['druid']['hp'] <= 0) {
+    pushView('game_over');
+  }
+}
+
+export function rest(forced) {
+  let rate = 20;
+  if (!forced) {
+    rate = getStaminaRecoveryRate();
+  } else {
+    GAME_STATE['encounter_prob'] = 0.2;
+  }
+
+  let current_time = timeToFloat(GAME_STATE['hours']);
+  let new_time = timeToFloat(getTimeNextDay('6:00'));
+  let time_diff = floatToTime(new_time - current_time);
+
+  let success = roll(GAME_STATE['encounter_prob']);
+  if (success) {
+    if (forced) {
+      pushView('battle');
+    } else {
+      popAndPushView('battle');
+
+    }
+    return;
+  }
+
+  GAME_STATE['resting'] = true;
+  setLoading(3000, 'Resting...', time_diff, function() {
+    GAME_STATE['resting'] = false;
+    GAME_STATE['stamina'] = rate;
+
+    if (GAME_STATE['druid']['food'] <= 0) {
+      hitDruid(2);
+    }
+
+    GAME_STATE['druid']['food'] -= Math.min(GAME_STATE['druid']['food'], 2);
+
+    addMessage('You rested until the next morning.');
+    popView();
+  });
+}
+
 export function addTime(addTime) {
-  GAME_STATE['hours'] = addTime2(GAME_STATE['hours'], addTime);
+  setTime(addTime2(GAME_STATE['hours'], addTime));
 }
 
 export function getTimeNextDay(newTime) {
@@ -240,6 +341,25 @@ export function spendGold(cost) {
 
 export function earnGold(gold) {
   GAME_STATE['gold'] += gold;
+  
+  if (GAME_STATE['gold'] >= 10000) {
+    pushView('win');
+  }
+}
+
+export function canAct(cost) {
+  if (isOverweight()) {
+    addMessage(`You are overweight.`);
+    return false;
+  }
+
+  if (!useAbility(cost)) {
+    addMessage(`You do not have enough stamina.`);
+    popView();
+    return false;
+  }
+
+  return true;
 }
 
 function splitByLength(str, maxChars) {
@@ -311,6 +431,13 @@ export function stats(data) {
                 .join('');
   data['hp_bar'] = s + ' |' + bar + '|';
 
+  s = parseFloat(GAME_STATE['druid']['food']).toFixed(0);
+  let hunger_percent =
+      GAME_STATE['druid']['food'] / GAME_STATE['druid']['max_food'];
+
+  data['food_bar'] = '|' +
+      '`'.repeat(hunger_percent * 10).padEnd(10) + '| ' + s;
+
   data['char_click'] = {
     str: '[CHA]',
     fn: function() {
@@ -347,6 +474,10 @@ export function stats(data) {
 
 export function getDruidArmorClass() {
   return 10 + GAME_STATE['druid']['armor']['bonus'];
+}
+
+export function getSwordSkill() {
+  return GAME_STATE['druid']['sword_skill'];
 }
 
 export function getBowSkill() {
@@ -401,10 +532,10 @@ export function druid(data) {
       increaseSkill('sneaking_skill');
     }
   };
-  data['hunting_skill'] = {
-    'str': GAME_STATE['druid']['hunting_skill'],
+  data['camping_skill'] = {
+    'str': GAME_STATE['druid']['camping_skill'],
     'fn': function() {
-      increaseSkill('hunting_skill');
+      increaseSkill('camping_skill');
     }
   };
   data['skinning_skill'] = {
@@ -427,6 +558,22 @@ export function getRangedWeapon() {
 }
 
 export function equipWeapon(item_name) {
+  console.log(item_name);
+  if (item_name === 'Silver Sword' && getSwordSkill() < 4) {
+    addMessage('You need sword > 4 to equip a silver sword.');
+    return;
+  }
+
+  if (item_name === 'Gold Sword' && getSwordSkill() < 7) {
+    addMessage('You need sword > 7 to equip a gold sword.');
+      return;
+  }
+
+  if (item_name === 'Platinum Sword' && getSwordSkill() < 10) {
+    addMessage('You need sword > 10 to equip a Platinum Sword.');
+    return;
+  }
+
   let item_data = GAME_STATE['items'][item_name];
 
   consumeItem(item_name);
@@ -438,11 +585,20 @@ export function equipWeapon(item_name) {
 }
 
 export function equipRangedWeapon(item_name) {
-  if (item_name === 'Gun' && getBowSkill() < 10) {
-    addMessage('You need bow > 10 to wield a gun.');
+  if (item_name === 'Silver Bow' && getBowSkill() < 4) {
+    addMessage('You need bow > 4 to equip a silver bow.');
     return;
   }
 
+  if (item_name === 'Gold Bow' && getBowSkill() < 7) {
+    addMessage('You need bow > 7 to equip a gold bow.');
+    return;
+  }
+
+  if (item_name === 'Gun' && getBowSkill() < 10) {
+    addMessage('You need bow > 10 to equip a gun.');
+    return;
+  }
 
   let item_data = GAME_STATE['items'][item_name];
 
@@ -550,15 +706,15 @@ export function loading_bar() {
   let new_hour = floatToTime(current_hour + hour_increment * progress);
 
   GAME_STATE['hours'] = new_hour;
-  if (progress >= 1) {
+  if (progress >= 0.99) {
+    popView();
     GAME_STATE['show_leave'] = true;
     new_hour = addTime2(
         GAME_STATE['loading_bar_initial_hour'],
         GAME_STATE['loading_bar_hours']);
-    GAME_STATE['hours'] = addTime2(
-        GAME_STATE['loading_bar_initial_hour'],
-        GAME_STATE['loading_bar_hours']);
-    popView();
+    if (!setTime(new_hour)) {
+      return {};
+    }
     GAME_STATE['loading_fn']();
     return {};
   }

@@ -49,14 +49,7 @@ function getTrackableAnimals() {
   let env = getCurrentEnv();
 
   function outcome(animal) {
-    if (_.isOverweight()) {
-      _.addMessage(`You are overweight.`);
-      return;
-    }
-
-    if (!_.useAbility(getTrackingCost())) {
-      _.addMessage(`You do not have enough stamina.`);
-      _.popView();
+    if (!_.canAct(getTrackingCost())) {
       return;
     }
 
@@ -84,7 +77,7 @@ function getTrackableAnimals() {
         'is_special': is_special,
       };
 
-      GAME_STATE['animal_pos'] = 10;
+      GAME_STATE['animal_pos'] = Math.floor(2 + Math.random() * 22);
       GAME_STATE['shoot_cursor_pos'] = 0;
       GAME_STATE['shoot_cursor_direction'] = 1;
       GAME_STATE['has_shot'] = false;
@@ -184,12 +177,13 @@ export function sneak() {
       } else {
         for (let i = 0; i < 5; i++) {
           GAME_STATE['animal_goal'] = animal.size + _.rollD(28 - animal.size);
-          if (Math.abs(animal_pos - GAME_STATE['animal_goal']) >= animal.speed) {
+          if (Math.abs(animal_pos - GAME_STATE['animal_goal']) >=
+              animal.speed) {
             break;
           }
         }
       }
-      
+
       GAME_STATE['animal_rest'] = animal.rest;
       if (!animal.predictable) {
         GAME_STATE['animal_rest'] += _.rollD(5);
@@ -413,16 +407,13 @@ export function sneak() {
 }
 
 export function loot() {
-  let animal = GAME_STATE['animal'];
-  _.addMessage(`You killed the ${animal.name}.`);
-
   let template_data = {};
   template_data['leave'] = function() {
     _.popView();
   };
 
   let items = [];
-  
+
   for (let item of GAME_STATE['current_loot']) {
     item['value'] = _.getItemData(item.name)['value'];
     item['fn'] = function() {
@@ -448,6 +439,12 @@ export function forest() {
     if (_.useAbility(getTrackingCost())) {
       _.addMessage('You spent some time finding tracks.');
       _.setLoading(1000, 'Exploring...', '1:00', function() {
+        
+      if (_.roll(0.2)) {
+        _.pushView('battle');
+        return;
+      }
+
         _.pushView('hunt');
       });
     } else {
@@ -483,32 +480,96 @@ export function forest() {
 
 export function camp() {
   let template_data = {};
+  template_data['on_start'] = function() {
+    GAME_STATE['sleeping_spot'] = 'poor';
+    GAME_STATE['camp_setup'] = false;
+    GAME_STATE['bonfire_lit'] = false;
+    GAME_STATE['random_encounter'] = 0.2;
+  };
 
-  template_data['rest'] = function() {
-    let current_time = _.timeToFloat(GAME_STATE['hours']);
-    let new_time = _.timeToFloat(_.getTimeNextDay('6:00'));
-    let time_diff = _.floatToTime(new_time - current_time);
+  template_data['random_encounter'] = _.getRandomEncounterChance();
+  template_data['find_spot'] = function() {
+    if (!_.canAct(10)) {
+      return;
+    }
 
-    _.setLoading(3000, 'Resting...', time_diff, function() {
-      GAME_STATE['stamina'] = 100;
-
-      let success = _.roll(GAME_STATE['encounter_prob']);
-      if (success) {
-        _.popAndPushView('battle');
-        return;
+    _.setLoading(1000, 'Finding spot...', '1:00', function() {
+      let skill = GAME_STATE['druid']['camping_skill'];
+      let result = _.rollD(20) + skill;
+      if (result <= 8) {
+        GAME_STATE['sleeping_spot'] = 'poor';
+      } else if (result <= 15) {
+        GAME_STATE['sleeping_spot'] = 'normal';
+      } else {
+        GAME_STATE['sleeping_spot'] = 'nice';
       }
-
-      if (!_.consumeItem('Ration')) {
-        _.addMessage('You do not have enough rations.');
-        return;
-      }
-
-      _.addMessage('You rested until the next morning.');
-      _.popView();
+      GAME_STATE['camp_setup'] = false;
+      GAME_STATE['bonfire_lit'] = false;
+      GAME_STATE['random_encounter'] = 0.2;
     });
   };
 
+  template_data['setup_camp'] = function() {
+    if (!_.canAct(10)) {
+      return;
+    }
+
+    GAME_STATE['camp_setup'] = true;
+  };
+
+  template_data['light_bonfire'] = function() {
+    if (!_.canAct(10)) {
+      return;
+    }
+
+    GAME_STATE['bonfire_lit'] = true;
+  };
+
+  template_data['eat'] = function() {
+    if (!_.consumeItem('Ration')) {
+      addMessage('You do not have enough rations.');
+      return;
+    }
+
+    GAME_STATE['druid']['food'] += 2;
+    GAME_STATE['druid']['food'] =
+        Math.min(GAME_STATE['druid']['max_food'], GAME_STATE['druid']['food']);
+  };
+
+  template_data['skin'] = function() {
+    _.pushView('skin');
+  };
+
+  let rate = _.getStaminaRecoveryRate();
+  template_data['rate'] = rate;
+
+  template_data['rest'] = function() {
+    _.rest();
+  };
+
   template_data['rations'] = _.getItemQuantity('Ration');
+  return template_data;
+}
+
+export function skin() {
+  let template_data = {};
+
+  let carcasses = [];
+  for (let item of GAME_STATE['druid']['items']) {
+    if (!_.getItemData(item.name)['carcass']) continue;
+    carcasses.push(item);
+  }
+
+  let items = [];
+  for (let item of carcasses) {
+    item['value'] = _.getItemData(item.name)['value'];
+    item['fn'] = function() {
+      // GAME_STATE['current_loot'] =
+      //     GAME_STATE['current_loot'].filter(_item => _item !== item);
+    };
+    items.push(item);
+  }
+  template_data['items'] = items;
   return template_data;
 }
 
@@ -517,3 +578,4 @@ renderer.models['sneak'] = sneak;
 renderer.models['loot'] = loot;
 renderer.models['forest'] = forest;
 renderer.models['camp'] = camp;
+renderer.models['skin'] = skin;
