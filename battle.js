@@ -6,7 +6,7 @@ import * as _ from './yaml.js';
 Object.assign(GAME_STATE, {
   'battle_state': 'START',
   'battle_counter': 51,
-  'sword_swing_cost': 5,
+  'sword_swing_cost': 2,
   'battle_enemies': [
     {
       'present': true,
@@ -217,13 +217,14 @@ export function attack(i) {
 }
 
 export function escape() {
-  if (!_.useAbility(20)) {
+  if (!_.useAbility(10)) {
     addMessage(`You don't have enough stamina.`);
     return;
   }
 
   if (_.probDcCheck(_.getSneakingSkill(), 15)) {
-    addMessage(`You escaped.`);
+    GAME_STATE['show_leave'] = true;
+    _.addMessage(`You escaped.`);
     _.popView();
     return;
   }

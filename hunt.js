@@ -49,7 +49,7 @@ function getTrackableAnimals() {
   let env = getCurrentEnv();
 
   function outcome(animal) {
-    if (!_.canAct(getTrackingCost())) {
+    if (!_.canAct(5)) {
       return;
     }
 
@@ -65,8 +65,8 @@ function getTrackableAnimals() {
       let frequency = env['animals'][animal['name']];
       let is_special = frequency['has_special'];
       if (is_special) {
-        // is_special = _.rollD(5) == 5;
-        is_special = true;
+        is_special = _.rollD(5) == 5;
+        // is_special = true;
       }
 
       _.addMessage(`You tracked the ${animal.name}.`);
@@ -176,7 +176,7 @@ export function sneak() {
         }
       } else {
         for (let i = 0; i < 5; i++) {
-          GAME_STATE['animal_goal'] = animal.size + _.rollD(28 - animal.size);
+          GAME_STATE['animal_goal'] = Math.floor(animal.size) + _.rollD(26 - Math.ceil(animal.size));
           if (Math.abs(animal_pos - GAME_STATE['animal_goal']) >=
               animal.speed) {
             break;
@@ -207,7 +207,7 @@ export function sneak() {
 
     cursor_pos += GAME_STATE['shoot_cursor_direction'];
 
-    let animal_lft = -Math.floor(animal.size);
+    let animal_lft = Math.floor(animal.size);
     let animal_rgt = +Math.ceil(animal.size);
     animal_pos =
         Math.max(animal_lft, Math.min(animal_pos, length - 1 - animal_rgt));
@@ -489,7 +489,7 @@ export function camp() {
 
   template_data['random_encounter'] = _.getRandomEncounterChance();
   template_data['find_spot'] = function() {
-    if (!_.canAct(10)) {
+    if (!_.canAct(5)) {
       return;
     }
 
@@ -510,7 +510,7 @@ export function camp() {
   };
 
   template_data['setup_camp'] = function() {
-    if (!_.canAct(10)) {
+    if (!_.canAct(2)) {
       return;
     }
 
@@ -518,7 +518,7 @@ export function camp() {
   };
 
   template_data['light_bonfire'] = function() {
-    if (!_.canAct(10)) {
+    if (!_.canAct(2)) {
       return;
     }
 

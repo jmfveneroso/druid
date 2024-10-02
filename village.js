@@ -353,7 +353,14 @@ function temple() {
     } else {
       _.addMessage('You do not have enough gold.');
     }
-    
+  };
+  
+  data['rest'] = function () {
+    if (_.spendGold(25)) {
+      _.rest(false, 100);
+    } else {
+      _.addMessage('You do not have enough gold.');
+    }
   };
  
   let level_cost = GAME_STATE['druid']['level'] * 50;

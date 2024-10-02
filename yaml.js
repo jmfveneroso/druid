@@ -261,8 +261,12 @@ export function getStaminaRecoveryRate() {
 }
 
 export function getRandomEncounterChance() {
-  let fire_bonus = GAME_STATE['bonfire_lit'] ? 0.2 : 0.0;
-  return 0.2 + fire_bonus;
+  if (isInVillage()) {
+    return 0;
+  }
+  
+  let fire_bonus = GAME_STATE['bonfire_lit'] ? 0.1 : 0.0;
+  return 0.1 + fire_bonus;
 }
 
 export function hitDruid(dmg) {
@@ -273,12 +277,27 @@ export function hitDruid(dmg) {
   }
 }
 
-export function rest(forced) {
+function isInVillage() {
+  const grid = GAME_STATE['map_grid'];
+    const i = GAME_STATE['druid']['position']['x'];
+    const j = GAME_STATE['druid']['position']['y'];
+
+    const village_index = grid[i][j]['village'];
+    return (village_index !== undefined);
+}
+
+export function rest(forced, staminaRate) {
   let rate = 20;
   if (!forced) {
-    rate = getStaminaRecoveryRate();
+    if (staminaRate) {
+      rate = staminaRate;
+      GAME_STATE['encounter_prob'] = 0;
+    } else {
+      rate = getStaminaRecoveryRate();
+      GAME_STATE['encounter_prob'] = getRandomEncounterChance();
+    }
   } else {
-    GAME_STATE['encounter_prob'] = 0.2;
+    GAME_STATE['encounter_prob'] = 0.1;
   }
 
   let current_time = timeToFloat(GAME_STATE['hours']);
@@ -291,7 +310,6 @@ export function rest(forced) {
       pushView('battle');
     } else {
       popAndPushView('battle');
-
     }
     return;
   }
