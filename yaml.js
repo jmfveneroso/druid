@@ -62,9 +62,10 @@ export function getArrowSpeed() {
     return 5;
   }
 
-  if (getBowSkill() >= 7) {
-    return 2;
+  if (getRangedWeapon() === 'Gold Bow') {
+    return true;
   }
+
   return 1;
 }
 
@@ -73,9 +74,14 @@ export function hasDoubleArrows() {
     return false;
   }
 
-  if (getBowSkill() >= 4) {
+  if (getRangedWeapon() === 'Silver Bow') {
     return true;
   }
+
+  if (getRangedWeapon() === 'Gold Bow') {
+    return true;
+  }
+
   return false;
 }
 
@@ -248,42 +254,48 @@ export function getStaminaRecoveryRate() {
   let skill = GAME_STATE['druid']['camping_skill'];
   let bonus_multiplier = 1;
   if (skill >= 4) {
-    bonus_multiplier = 2;
   } else if (skill >= 7) {
-    bonus_multiplier = 3;
+    bonus_multiplier = 2;
   } else if (skill >= 10) {
-    bonus_multiplier = 4;
+    bonus_multiplier = 3;
   }
 
   let camp_bonus = GAME_STATE['camp_setup'] ? 20 * bonus_multiplier : 0;
   let fire_bonus = GAME_STATE['bonfire_lit'] ? 20 * bonus_multiplier : 0;
-  return 40 + spot_bonus + camp_bonus + fire_bonus;
+  return 40 + spot_bonus + camp_bonus + fire_bonus + skill * 2;
 }
 
 export function getRandomEncounterChance() {
   if (isInVillage()) {
     return 0;
   }
-  
+
   let fire_bonus = GAME_STATE['bonfire_lit'] ? 0.1 : 0.0;
+
+  let skill = GAME_STATE['druid']['camping_skill'];
+  if (skill >= 7) {
+    fire_bonus = 0;
+  }
+
   return 0.1 + fire_bonus;
 }
 
 export function hitDruid(dmg) {
   GAME_STATE['druid']['hp'] -= Math.min(dmg, GAME_STATE['druid']['hp']);
-  addMessage(`(${roll}) The wolf inflicted ${dmg} damage.`);
   if (GAME_STATE['druid']['hp'] <= 0) {
     pushView('game_over');
+    return true;
   }
+  return false;
 }
 
 function isInVillage() {
   const grid = GAME_STATE['map_grid'];
-    const i = GAME_STATE['druid']['position']['x'];
-    const j = GAME_STATE['druid']['position']['y'];
+  const i = GAME_STATE['druid']['position']['x'];
+  const j = GAME_STATE['druid']['position']['y'];
 
-    const village_index = grid[i][j]['village'];
-    return (village_index !== undefined);
+  const village_index = grid[i][j]['village'];
+  return (village_index !== undefined);
 }
 
 export function rest(forced, staminaRate) {
@@ -298,6 +310,10 @@ export function rest(forced, staminaRate) {
     }
   } else {
     GAME_STATE['encounter_prob'] = 0.1;
+  }
+
+  if (GAME_STATE['force_encounter']) {
+    GAME_STATE['encounter_prob'] = 1.0;
   }
 
   let current_time = timeToFloat(GAME_STATE['hours']);
@@ -319,11 +335,15 @@ export function rest(forced, staminaRate) {
     GAME_STATE['resting'] = false;
     GAME_STATE['stamina'] = rate;
 
-    if (GAME_STATE['druid']['food'] <= 0) {
-      hitDruid(2);
+    // Resting at tavern.
+    if (staminaRate) {
+      GAME_STATE['druid']['food'] = GAME_STATE['druid']['max_food'];
+    } else {
+      if (GAME_STATE['druid']['food'] < 2) {
+        if (hitDruid(2)) return;
+      }
+      GAME_STATE['druid']['food'] -= Math.min(GAME_STATE['druid']['food'], 2);
     }
-
-    GAME_STATE['druid']['food'] -= Math.min(GAME_STATE['druid']['food'], 2);
 
     addMessage('You rested until the next morning.');
     popView();
@@ -359,13 +379,15 @@ export function spendGold(cost) {
 
 export function earnGold(gold) {
   GAME_STATE['gold'] += gold;
-  
+
   if (GAME_STATE['gold'] >= 10000) {
     pushView('win');
   }
 }
 
 export function canAct(cost) {
+  if (GAME_STATE['debug']) return true;
+
   if (isOverweight()) {
     addMessage(`You are overweight.`);
     return false;
@@ -515,7 +537,7 @@ export function rollMeleeDamage() {
 
 export function rollRangedDamage() {
   let dmg = rollD(GAME_STATE['druid']['ranged']['base_die']) +
-      GAME_STATE['druid']['ranged']['bonus'];
+      GAME_STATE['druid']['ranged']['bonus'] + getBowSkill();
   return dmg;
 }
 
@@ -568,6 +590,7 @@ export function druid(data) {
       increaseSkill('tracking_skill');
     }
   };
+  data['ranged_bonus'] = GAME_STATE['druid']['ranged']['bonus'] + getBowSkill();
   return data;
 }
 
@@ -584,7 +607,7 @@ export function equipWeapon(item_name) {
 
   if (item_name === 'Gold Sword' && getSwordSkill() < 7) {
     addMessage('You need sword > 7 to equip a gold sword.');
-      return;
+    return;
   }
 
   if (item_name === 'Platinum Sword' && getSwordSkill() < 10) {
@@ -648,6 +671,17 @@ export function equipBoots(item_name) {
   GAME_STATE['druid']['boots']['bonus'] = item_data['bonus'];
 }
 
+export function usePotion(item_name) {
+  let item_data = GAME_STATE['items'][item_name];
+
+  consumeItem(item_name);
+  if (item_name === 'Elixir') {
+    GAME_STATE['druid']['hp'] = GAME_STATE['druid']['max_hp'];
+    GAME_STATE['druid']['food'] = GAME_STATE['druid']['max_food'];
+    GAME_STATE['druid']['stamina'] = GAME_STATE['druid']['max_stamina'];
+  }
+}
+
 export function inventory(data) {
   let weight = getCurrentWeight();
   data['weight'] = weight;
@@ -671,6 +705,9 @@ export function inventory(data) {
           break;
         case 'boots':
           equipBoots(item.name);
+          break;
+        case 'potion':
+          usePotion(item.name);
           break;
       }
     };

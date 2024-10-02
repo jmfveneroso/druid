@@ -12,12 +12,12 @@ Skills:
 - Bow:      @bow_skill           @
 - Camping:  @camping_skill       @
 - Sneaking: @sneaking_skill      @
-- Skinning: @skinning_skill      @
+# - Skinning: @skinning_skill      @
 - Tracking: @tracking_skill      @
 
 Equipped:
 - Sword: @druid.melee.name-@ 1d@druid.melee.base_die-@+@druid.melee.bonus-@
-- Bow:   @druid.ranged.name-@ 1d@druid.ranged.base_die-@+@druid.ranged.bonus-@
+- Bow:   @druid.ranged.name-@ 1d@druid.ranged.base_die-@+@ranged_bonus-@
 - Armor: @druid.armor.name-@ +@druid.armor.bonus @
 - Boots: @druid.boots.name-@ +@druid.boots.bonus @
 

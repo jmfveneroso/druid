@@ -206,7 +206,6 @@ export function attack(i) {
         if (!enemy(i)['loot']) continue;
         GAME_STATE['current_loot'] = GAME_STATE['current_loot'].concat(enemy(i)['loot']);
       }
-      console.log(GAME_STATE['current_loot']);
       _.popAndPushView('loot');
       GAME_STATE['show_leave'] = true;
     }
@@ -217,12 +216,16 @@ export function attack(i) {
 }
 
 export function escape() {
-  if (!_.useAbility(10)) {
+  if (GAME_STATE['battle_state'] !== 'P') {
+    return;
+  }
+
+  if (!_.useAbility(5)) {
     addMessage(`You don't have enough stamina.`);
     return;
   }
 
-  if (_.probDcCheck(_.getSneakingSkill(), 15)) {
+  if (_.dcCheck(_.getSneakingSkill(), 10)) {
     GAME_STATE['show_leave'] = true;
     _.addMessage(`You escaped.`);
     _.popView();
@@ -230,6 +233,7 @@ export function escape() {
   }
 
   addMessage(`You failed to escape.`);
+  processInitiative();
 }
 
 export function rollEncounter() {
@@ -305,6 +309,7 @@ export function battle() {
   }
 
   data['atk'] = attack;
+  data['escape_chance'] = _.probDcCheck(_.getSneakingSkill(), 10);
   data['escape'] = escape;
 
   clearTimeout(GAME_STATE['refresh']);
@@ -314,9 +319,9 @@ export function battle() {
 
   data['turns'] = GAME_STATE['initiatives'].join('==');
 
-  data['attack0'] = function () { attack(0); }
-  data['attack1'] = function () { attack(1); }
-  data['attack2'] = function () { attack(2); }
+  data['attack0'] = function () { attack(0); };
+  data['attack1'] = function () { attack(1); };
+  data['attack2'] = function () { attack(2); };
 
   return data;
 }

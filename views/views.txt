@@ -92,7 +92,7 @@
 
 @onclick escape
 +-------------------------------------+
-|               ESCAPE                |
+|             ESCAPE @escape_chance-@             |
 +-------------------------------------+
 @endonclick
 
@@ -281,19 +281,19 @@ Random encounter chance: @random_encounter@
 
 @onclick rest
 +-------------------------------------+
-|                REST                 |
+|            REST (25 GP)             |
 +-------------------------------------+
 @endonclick
 
 @onclick heal
 +-------------------------------------+
-|                HEAL                 |
+|            HEAL (100 GP)            |
 +-------------------------------------+
 @endonclick
 
 @onclick gain_level
 +-------------------------------------+
-|       GAIN LEVEL (@level_cost@)     |
+|           GAIN LEVEL @lvlc@         |
 +-------------------------------------+
 @endonclick
 

@@ -364,7 +364,7 @@ function temple() {
   };
  
   let level_cost = GAME_STATE['druid']['level'] * 50;
-  data['level_cost'] = level_cost;
+  data['lvlc'] = level_cost;
   data['gain_level'] = function () {
     if (_.spendGold(level_cost)) {
       GAME_STATE['druid']['level'] += 1;

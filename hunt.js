@@ -55,6 +55,7 @@ function getTrackableAnimals() {
 
     _.setLoading(1000, 'Tracking...', '2:00', function() {
       let success = _.dcCheck(skill, animal['chasing_difficulty']);
+      success = success || GAME_STATE['debug'];
       if (!success) {
         _.addMessage(`You failed to track the ${animal.name}.`);
         return;
@@ -92,7 +93,7 @@ function getTrackableAnimals() {
 
   let animals = [];
   for (let animal of GAME_STATE['animals']) {
-    if (animal['min_tracking_skill'] > skill) {
+    if (animal['min_tracking_skill'] > skill && !GAME_STATE['debug']) {
       continue;
     }
 
@@ -104,6 +105,7 @@ function getTrackableAnimals() {
 
     let success =
         _.dcCheck(skill + frequencyBonus, animal['tracking_difficulty']);
+    success = success || GAME_STATE['debug'];
     if (success) {
       let prob = _.probDcCheck(skill, animal['chasing_difficulty']);
 
@@ -115,9 +117,6 @@ function getTrackableAnimals() {
           outcome(animal);
         },
       });
-      if (animal['name'] == 'Boar') {
-        console.log(animals);
-      }
     }
   }
 
@@ -176,7 +175,8 @@ export function sneak() {
         }
       } else {
         for (let i = 0; i < 5; i++) {
-          GAME_STATE['animal_goal'] = Math.floor(animal.size) + _.rollD(26 - Math.ceil(animal.size));
+          GAME_STATE['animal_goal'] =
+              Math.floor(animal.size) + _.rollD(26 - Math.ceil(animal.size));
           if (Math.abs(animal_pos - GAME_STATE['animal_goal']) >=
               animal.speed) {
             break;
@@ -208,7 +208,7 @@ export function sneak() {
     cursor_pos += GAME_STATE['shoot_cursor_direction'];
 
     let animal_lft = Math.floor(animal.size);
-    let animal_rgt = +Math.ceil(animal.size);
+    let animal_rgt = Math.ceil(animal.size);
     animal_pos =
         Math.max(animal_lft, Math.min(animal_pos, length - 1 - animal_rgt));
     cursor_pos = Math.max(0, Math.min(cursor_pos, length - 1));
@@ -252,7 +252,7 @@ export function sneak() {
           GAME_STATE['arrow2_pos'] = undefined;
         }
 
-        if (pos[0] >= animal_pos + animal_lft &&
+        if (pos[0] >= animal_pos - animal_lft &&
             pos[0] <= animal_pos + animal_rgt) {
           GAME_STATE['arrow_pos'] = undefined;
           GAME_STATE['arrow2_pos'] = undefined;
@@ -279,11 +279,6 @@ export function sneak() {
               };
               _.addMessage(`You tracked the ${animal.name}.`);
             });
-
-            // _.addMessage(`You did ${dmg}, the ${animal.name} is running.`);
-            // _.popAndPushView('chase');
-            // _.popAndPushView('sneak');
-            // _.addTime('1:00');
           }
           both_out = false;
         }
@@ -341,6 +336,8 @@ export function sneak() {
     }
   }
 
+  let bow_skill = _.getBowSkill();
+
   for (let y = 1; y < max_y; y++) {
     template_data['animal_matrix'].push('');
     for (let x = 0; x < 30; x++) {
@@ -362,10 +359,15 @@ export function sneak() {
           continue;
         }
       }
-      template_data['animal_matrix'][y] += ' ';
+
+      if ((max_y - y) < bow_skill && x == cursor_pos &&
+          !GAME_STATE['has_shot']) {
+        template_data['animal_matrix'][y] += '.';
+      } else {
+        template_data['animal_matrix'][y] += ' ';
+      }
     }
   }
-
 
   template_data['animal_matrix'][max_y] = '';
   for (let x = 0; x < 30; x++) {
@@ -414,12 +416,12 @@ export function loot() {
 
   let items = [];
 
-  for (let item of GAME_STATE['current_loot']) {
+  for (let i = 0; i < GAME_STATE['current_loot'].length; i++) {
+    let item = GAME_STATE['current_loot'][i];
     item['value'] = _.getItemData(item.name)['value'];
     item['fn'] = function() {
       if (_.acquireItem(item.name, item.q)) {
-        GAME_STATE['current_loot'] =
-            GAME_STATE['current_loot'].filter(_item => _item !== item);
+        GAME_STATE['current_loot'].splice(i, 1);
       } else {
         _.addMessage(`The inventory is full.`);
       }
@@ -439,12 +441,10 @@ export function forest() {
     if (_.useAbility(getTrackingCost())) {
       _.addMessage('You spent some time finding tracks.');
       _.setLoading(1000, 'Exploring...', '1:00', function() {
-        
-      if (_.roll(0.2)) {
-        _.pushView('battle');
-        return;
-      }
-
+        if (_.roll(0.2)) {
+          _.pushView('battle');
+          return;
+        }
         _.pushView('hunt');
       });
     } else {
@@ -474,14 +474,18 @@ export function forest() {
       'prob': prob,
     });
   }
-  console.log(template_data['animals']);
   return template_data;
 }
 
 export function camp() {
   let template_data = {};
   template_data['on_start'] = function() {
-    GAME_STATE['sleeping_spot'] = 'poor';
+    let skill = GAME_STATE['druid']['camping_skill'];
+    if (skill >= 10) {
+      GAME_STATE['sleeping_spot'] = 'nice';
+    } else {
+      GAME_STATE['sleeping_spot'] = 'poor';
+    }
     GAME_STATE['camp_setup'] = false;
     GAME_STATE['bonfire_lit'] = false;
     GAME_STATE['random_encounter'] = 0.2;
@@ -510,7 +514,9 @@ export function camp() {
   };
 
   template_data['setup_camp'] = function() {
-    if (!_.canAct(2)) {
+    let skill = GAME_STATE['druid']['camping_skill'];
+    let cost = (skill < 5) ? 5 : 0;
+    if (!_.canAct(cost)) {
       return;
     }
 
@@ -518,9 +524,9 @@ export function camp() {
   };
 
   template_data['light_bonfire'] = function() {
-    if (!_.canAct(2)) {
-      return;
-    }
+    // if (!_.canAct(2)) {
+    //   return;
+    // }
 
     GAME_STATE['bonfire_lit'] = true;
   };

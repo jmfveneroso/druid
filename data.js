@@ -50,6 +50,7 @@ export let GAME_STATE = {
     'Wolf Pelt': {value: 50, weight: 5},
     'Ruby': {value: 40, weight: 5},
     'Drake Pelt': {value: 500, weight: 5},
+    'Elixir': {value: 0, weight: 1, type: 'potion'},
   },
   'enemies': {
     'wolf': {
@@ -82,7 +83,7 @@ export let GAME_STATE = {
   },
   'encounter_types': [
     {prob: 0.5, enemies: ['wolf']},
-    {prob: 0.4, enemies: ['goblin', 'goblin']},
+    {prob: 20.4, enemies: ['goblin', 'goblin']},
     {prob: 0.1, enemies: ['drake']},
   ],
   'encounter_prob': 0.2,
@@ -104,6 +105,7 @@ export let GAME_STATE = {
     'items': [
       {name: 'Ration', q: 3},
       {name: 'Arrows', q: 20},
+      {name: 'Elixir', q: 1},
     ],
     'position': {'x': 3, 'y': 3},
     'ranged': {
@@ -130,7 +132,7 @@ export let GAME_STATE = {
     'max_food': 10,
     'level': 1,
     'init_bonus': 2,
-    'camping_skill': 1,
+    'camping_skill': 10,
     'sneaking_skill': 1,
     'skinning_skill': 1,
     'tracking_skill': 1,
@@ -156,6 +158,8 @@ export let GAME_STATE = {
     {name: 'Gold Boots'},
     {name: 'Platinum Boots'},
   ],
+  'debug': false,
+  'force_encounter': false,
 };
 
 Object.assign(GAME_STATE, {
@@ -167,7 +171,7 @@ Object.assign(GAME_STATE, {
       'chasing_difficulty': 6,
       'sneaking_difficulty': 10,
       'size': 0,
-      'rest': 25,
+      'rest': 35,
       'speed': 1,
       'move_speed': 1,
       'fights': false,
@@ -190,7 +194,7 @@ Object.assign(GAME_STATE, {
       'chasing_difficulty': 8,
       'sneaking_difficulty': 10,
       'size': 2,
-      'rest': 5,
+      'rest': 10,
       'speed': 3,
       'move_speed': 1,
       'fights': false,
@@ -209,7 +213,7 @@ Object.assign(GAME_STATE, {
       'chasing_difficulty': 8,
       'sneaking_difficulty': 10,
       'size': 0.5,
-      'rest': 30,
+      'rest': 35,
       'speed': 7,
       'move_speed': 2,
       'fights': false,
@@ -223,7 +227,7 @@ Object.assign(GAME_STATE, {
     },
     {
       'name': 'Fox',
-      'hp': 10,
+      'hp': 15,
       'tracking_difficulty': 16,
       'chasing_difficulty': 14,
       'sneaking_difficulty': 16,
@@ -242,7 +246,7 @@ Object.assign(GAME_STATE, {
     },
     {
       'name': 'Pheasant',
-      'hp': 10,
+      'hp': 15,
       'tracking_difficulty': 14,
       'chasing_difficulty': 15,
       'sneaking_difficulty': 18,
@@ -262,7 +266,7 @@ Object.assign(GAME_STATE, {
     },
     {
       'name': 'Lizard',
-      'hp': 10,
+      'hp': 20,
       'tracking_difficulty': 14,
       'chasing_difficulty': 15,
       'sneaking_difficulty': 18,
@@ -281,7 +285,7 @@ Object.assign(GAME_STATE, {
     },
     {
       'name': 'Serpent',
-      'hp': 10,
+      'hp': 20,
       'tracking_difficulty': 14,
       'chasing_difficulty': 15,
       'sneaking_difficulty': 18,
@@ -300,7 +304,7 @@ Object.assign(GAME_STATE, {
     },
     {
       'name': 'Unicorn',
-      'hp': 10,
+      'hp': 30,
       'tracking_difficulty': 14,
       'chasing_difficulty': 15,
       'sneaking_difficulty': 18,
@@ -319,7 +323,7 @@ Object.assign(GAME_STATE, {
     },
     {
       'name': 'Blink Dog',
-      'hp': 10,
+      'hp': 30,
       'tracking_difficulty': 14,
       'chasing_difficulty': 15,
       'sneaking_difficulty': 18,
