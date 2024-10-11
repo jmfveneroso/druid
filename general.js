@@ -98,6 +98,11 @@ utils.getCurrentEnv = function () {
   return square['environment'];
 }
 
+utils.getCurrentView = function () {
+  let game_views = GAME_STATE['views'];
+  return game_views[game_views.length - 1];
+}
+
 // =============================================================================
 // TEMPLATES
 // =============================================================================

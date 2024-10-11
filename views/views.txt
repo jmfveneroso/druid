@@ -1,5 +1,5 @@
 <<< stats
-@hours   -@               @config-@              Gold: @gold-@ 
+@hours   -@               @config-@            Gold: @gold-@ 
 @stamina_bar               @ @hp_bar                 @ 
 @food_bar     @                            @leave-@
 @char_click-@ @inventory_click-@      =@affected_organs@=       @leave-@
@@ -281,7 +281,7 @@ Random encounter chance: @random_encounter@
 
 @onclick rest
 +-------------------------------------+
-|            REST (25 GP)             |
+|           REST (100 GP)             |
 +-------------------------------------+
 @endonclick
 

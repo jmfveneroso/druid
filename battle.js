@@ -217,7 +217,6 @@ export function attack(i) {
             GAME_STATE['current_loot'].concat(enemy(i)['loot']);
       }
       utils.popAndPushView('loot');
-      GAME_STATE['show_leave'] = true;
     }
   } else {
     addMessage(`(${roll}) You missed the enemy.`);
@@ -235,8 +234,9 @@ export function escape() {
     return;
   }
 
-  if (utils.dcCheck(utils.getSneakingSkill(), 10)) {
-    GAME_STATE['show_leave'] = true;
+
+  let dc = GAME_STATE['battle_enemies'][0]['escape_dc'];
+  if (utils.dcCheck(utils.getSneakingSkill(), dc)) {
     utils.addMessage(`You escaped.`);
     utils.popView();
     return;
@@ -266,7 +266,6 @@ export function battle() {
   data['on_start'] = function() {
     GAME_STATE['battle_state'] = 'START';
     GAME_STATE['initiatives'] = [];
-    GAME_STATE['show_leave'] = false;
     let enemies = rollEncounter();
 
     for (let i = 0; i < 3; i++) {
@@ -285,7 +284,8 @@ export function battle() {
         'init_bonus': enemy['init_bonus'],
         'pos': [2, 2],
         'took_hit': 0,
-        'loot': Array.from(enemy['loot'])
+        'loot': Array.from(enemy['loot']),
+        'escape_dc': enemy['escape_dc']
       };
     }
   };
@@ -321,7 +321,8 @@ export function battle() {
   }
 
   data['atk'] = attack;
-  data['escape_chance'] = utils.probDcCheck(utils.getSneakingSkill(), 10);
+  let dc = GAME_STATE['battle_enemies'][0]['escape_dc'];
+  data['escape_chance'] = utils.probDcCheck(utils.getSneakingSkill(), dc);
   data['escape'] = escape;
 
   clearTimeout(GAME_STATE['refresh']);

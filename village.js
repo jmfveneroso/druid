@@ -356,7 +356,7 @@ function temple() {
   };
   
   data['rest'] = function () {
-    if (utils.spendGold(25)) {
+    if (utils.spendGold(100)) {
       utils.rest(false, 100);
     } else {
       utils.addMessage('You do not have enough gold.');
@@ -368,8 +368,8 @@ function temple() {
   data['gain_level'] = function () {
     if (utils.spendGold(level_cost)) {
       GAME_STATE['druid']['level'] += 1;
-      GAME_STATE['druid']['max_hp'] += 2;
-      GAME_STATE['druid']['hp'] += 2;
+      GAME_STATE['druid']['max_hp'] += 1;
+      GAME_STATE['druid']['hp'] += 1;
       GAME_STATE['druid']['skill_points'] += 5;
     } else {
       utils.addMessage('You do not have enough gold.');

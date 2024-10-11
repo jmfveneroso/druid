@@ -301,7 +301,7 @@ utils.getArrowSpeed = function() {
   }
 
   if (utils.getRangedWeapon() === 'Gold Bow') {
-    return true;
+    return 2;
   }
 
   return 1;
@@ -476,8 +476,6 @@ renderer.updaters['retching'] = {
 renderer.updaters['druid'] = {
   period: 0,
   fn: function() {
-    console.log('regular update');
-
     for (let organ in organ_stats) {
       if (GAME_STATE['druid'][organ + '_hp'] == 0) {
         utils.setStatus(organ_stats[organ][1]);
@@ -565,7 +563,10 @@ export function stats(data) {
     data['leave'] = {
       str: '[--X--]',
       fn: function() {
-        utils.popView();
+        if (utils.getCurrentView() !== 'battle' && 
+            utils.getCurrentView() !== 'loading') {
+          utils.popView();
+        }
       }
     };
   } else {
