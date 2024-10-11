@@ -1,7 +1,6 @@
 import {GAME_STATE, TEMP} from './data.js';
-import {run} from './main.js';
-import {renderer} from './renderer.js';
-import * as _ from './yaml.js';
+import {utils} from './general.js';
+import {renderer, run} from './renderer.js';
 
 function getAnimal(animal_name) {
   for (let animal of GAME_STATE['animals']) {
@@ -12,20 +11,12 @@ function getAnimal(animal_name) {
   return {};
 }
 
-function getCurrentEnv() {
-  const grid = GAME_STATE['map_grid'];
-  const druidX = GAME_STATE['druid']['position']['x'];
-  const druidY = GAME_STATE['druid']['position']['y'];
-  const square = grid[druidX][druidY];
-  return square['environment'];
-}
-
 export function getTrackingCost() {
   return GAME_STATE['tracking_cost'];
 }
 
 export function damageAnimal(isCritical) {
-  let dmg = _.rollRangedDamage();
+  let dmg = utils.rollRangedDamage();
 
   dmg *= isCritical ? 2.0 : 1.0;
 
@@ -44,33 +35,33 @@ function getFrequencyBonus(frequency) {
 }
 
 function getTrackableAnimals() {
-  let skill = GAME_STATE['druid']['tracking_skill'];
+  let skill = utils.getTrackingSkill();
 
-  let env = getCurrentEnv();
+  let env = utils.getCurrentEnv();
 
   function outcome(animal) {
-    if (!_.canAct(5)) {
+    if (!utils.canAct(5)) {
       return;
     }
 
-    _.setLoading(1000, 'Tracking...', '2:00', function() {
-      let success = _.dcCheck(skill, animal['chasing_difficulty']);
+    utils.setLoading(1000, 'Tracking...', '2:00', function() {
+      let success = utils.dcCheck(skill, animal['chasing_difficulty']);
       success = success || GAME_STATE['debug'];
       if (!success) {
-        _.addMessage(`You failed to track the ${animal.name}.`);
+        utils.addMessage(`You failed to track the ${animal.name}.`);
         return;
       }
 
-      _.popAndPushView('sneak');
+      utils.popAndPushView('sneak');
 
       let frequency = env['animals'][animal['name']];
       let is_special = frequency['has_special'];
       if (is_special) {
-        is_special = _.rollD(5) == 5;
+        is_special = utils.rollD(5) == 5;
         // is_special = true;
       }
 
-      _.addMessage(`You tracked the ${animal.name}.`);
+      utils.addMessage(`You tracked the ${animal.name}.`);
       GAME_STATE['animal'] = Object.assign({}, animal);
       GAME_STATE['animal_stats'] = {
         'hp': animal.base_hp,
@@ -104,10 +95,10 @@ function getTrackableAnimals() {
     let frequencyBonus = getFrequencyBonus(frequency);
 
     let success =
-        _.dcCheck(skill + frequencyBonus, animal['tracking_difficulty']);
+        utils.dcCheck(skill + frequencyBonus, animal['tracking_difficulty']);
     success = success || GAME_STATE['debug'];
     if (success) {
-      let prob = _.probDcCheck(skill, animal['chasing_difficulty']);
+      let prob = utils.probDcCheck(skill, animal['chasing_difficulty']);
 
       animals.push({
         'name': animal['name'],
@@ -130,7 +121,7 @@ export function track() {
   template_data['animals'] = getTrackableAnimals();
 
   if (template_data['animals'].length === 0) {
-    _.addMessage('You found no tracks.');
+    utils.addMessage('You found no tracks.');
   }
 
   return template_data;
@@ -139,15 +130,15 @@ export function track() {
 export function sneak() {
   function sneakingOutcome(animal) {
     let success =
-        _.dcCheck(_.getSneakingSkill(), animal['sneaking_difficulty']);
+        utils.dcCheck(utils.getSneakingSkill(), animal['sneaking_difficulty']);
 
     if (!success) {
-      _.addMessage(`The ${animal.name} escaped.`);
-      _.popView();
+      utils.addMessage(`The ${animal.name} escaped.`);
+      utils.popView();
       return;
     }
 
-    _.addMessage(`You snuck close to the ${animal.name}.`);
+    utils.addMessage(`You snuck close to the ${animal.name}.`);
     GAME_STATE['animal_stats']['distance'] = 70;
   }
 
@@ -175,8 +166,8 @@ export function sneak() {
         }
       } else {
         for (let i = 0; i < 5; i++) {
-          GAME_STATE['animal_goal'] =
-              Math.floor(animal.size) + _.rollD(26 - Math.ceil(animal.size));
+          GAME_STATE['animal_goal'] = Math.floor(animal.size) +
+              utils.rollD(26 - Math.ceil(animal.size));
           if (Math.abs(animal_pos - GAME_STATE['animal_goal']) >=
               animal.speed) {
             break;
@@ -186,7 +177,7 @@ export function sneak() {
 
       GAME_STATE['animal_rest'] = animal.rest;
       if (!animal.predictable) {
-        GAME_STATE['animal_rest'] += _.rollD(5);
+        GAME_STATE['animal_rest'] += utils.rollD(5);
       }
     }
 
@@ -223,9 +214,9 @@ export function sneak() {
     GAME_STATE['shoot_cursor_pos'] = cursor_pos;
 
     if (arrow_pos === undefined) {
-      if (!_.useAbility(GAME_STATE['drawing_cost'])) {
-        _.addMessage(`The ${animal.name} ran away.`);
-        _.popView();
+      if (!utils.useAbility(GAME_STATE['drawing_cost'])) {
+        utils.addMessage(`The ${animal.name} ran away.`);
+        utils.popView();
       }
     }
 
@@ -242,7 +233,7 @@ export function sneak() {
         continue;
       }
 
-      pos[1] -= _.getArrowSpeed();
+      pos[1] -= utils.getArrowSpeed();
       pos[1] = Math.max(0, pos[1]);
       if (pos[1] == 0) {
         GAME_STATE['has_shot'] = false;
@@ -259,25 +250,26 @@ export function sneak() {
 
           let dmg = damageAnimal(false);
           if (animal['hp'] <= 0) {
-            _.addMessage(`You did ${dmg} dmg and killed the ${animal.name}.`);
+            utils.addMessage(
+                `You did ${dmg} dmg and killed the ${animal.name}.`);
             if (is_special) {
-              getCurrentEnv()['animals'][animal.name]['has_special'] = 0;
+              utils.getCurrentEnv()['animals'][animal.name]['has_special'] = 0;
             }
             GAME_STATE['current_loot'] =
                 Array.from((is_special) ? animal.special_loot : animal.loot);
-            _.popAndPushView('loot');
+            utils.popAndPushView('loot');
           } else if (animal.fights) {
-            _.addMessage(`You did ${dmg}, the ${animal.name} fights back.`);
-            _.popAndPushView('battle');
+            utils.addMessage(`You did ${dmg}, the ${animal.name} fights back.`);
+            utils.popAndPushView('battle');
             GAME_STATE['enemy1']['hp'] = animal['hp'];
           } else {
-            _.setLoading(1000, 'Chasing...', '1:00', function() {
+            utils.setLoading(1000, 'Chasing...', '1:00', function() {
               GAME_STATE['animal_stats'] = {
                 'hp': animal.hp,
                 'distance': 70,
                 'is_special': is_special,
               };
-              _.addMessage(`You tracked the ${animal.name}.`);
+              utils.addMessage(`You tracked the ${animal.name}.`);
             });
           }
           both_out = false;
@@ -289,19 +281,19 @@ export function sneak() {
 
     if ((arrow_pos || arrow2_pos) && both_out) {
       if (animal.fights) {
-        _.addMessage(`The ${animal.name} is aggressive.`);
-        _.popAndPushView('battle');
+        utils.addMessage(`The ${animal.name} is aggressive.`);
+        utils.popAndPushView('battle');
       } else {
-        _.addMessage(`You missed the ${animal.name}.`);
-        _.popView();
+        utils.addMessage(`You missed the ${animal.name}.`);
+        utils.popView();
       }
     }
   }
 
   updateLoop();
 
-  let sneakProb =
-      _.probDcCheck(_.getSneakingSkill(), animal['sneaking_difficulty']);
+  let sneakProb = utils.probDcCheck(
+      utils.getSneakingSkill(), animal['sneaking_difficulty']);
 
   if (distance < 100) {
     sneakProb = 'X';
@@ -336,7 +328,7 @@ export function sneak() {
     }
   }
 
-  let bow_skill = _.getBowSkill();
+  let bow_skill = utils.getBowSkill();
 
   for (let y = 1; y < max_y; y++) {
     template_data['animal_matrix'].push('');
@@ -384,8 +376,8 @@ export function sneak() {
       return;
     }
 
-    if (!_.consumeItem('Arrows')) {
-      _.addMessage(`You are out of arrows.`);
+    if (!utils.consumeItem('Arrows')) {
+      utils.addMessage(`You are out of arrows.`);
       return;
     }
 
@@ -393,7 +385,7 @@ export function sneak() {
     GAME_STATE['has_shot_2nd'] = false;
     GAME_STATE['arrow_pos'] = [cursor_pos, max_y];
 
-    if (_.hasDoubleArrows()) {
+    if (utils.hasDoubleArrows()) {
       GAME_STATE['arrow2_pos_delay'] = 2;
     }
   }
@@ -403,7 +395,7 @@ export function sneak() {
     run();
   }, 100);
 
-  template_data['arrows'] = _.getItemQuantity('Arrows');
+  template_data['arrows'] = utils.getItemQuantity('Arrows');
 
   return template_data;
 }
@@ -411,19 +403,19 @@ export function sneak() {
 export function loot() {
   let template_data = {};
   template_data['leave'] = function() {
-    _.popView();
+    utils.popView();
   };
 
   let items = [];
 
   for (let i = 0; i < GAME_STATE['current_loot'].length; i++) {
     let item = GAME_STATE['current_loot'][i];
-    item['value'] = _.getItemData(item.name)['value'];
+    item['value'] = utils.getItemData(item.name)['value'];
     item['fn'] = function() {
-      if (_.acquireItem(item.name, item.q)) {
+      if (utils.acquireItem(item.name, item.q)) {
         GAME_STATE['current_loot'].splice(i, 1);
       } else {
-        _.addMessage(`The inventory is full.`);
+        utils.addMessage(`The inventory is full.`);
       }
     };
     items.push(item);
@@ -434,21 +426,21 @@ export function loot() {
 
 export function forest() {
   let template_data = {};
-  let env = getCurrentEnv();
+  let env = utils.getCurrentEnv();
   template_data['env'] = env;
 
   template_data['hunt'] = function() {
-    if (_.useAbility(getTrackingCost())) {
-      _.addMessage('You spent some time finding tracks.');
-      _.setLoading(1000, 'Exploring...', '1:00', function() {
-        if (_.roll(0.2)) {
-          _.pushView('battle');
+    if (utils.useAbility(getTrackingCost())) {
+      utils.addMessage('You spent some time finding tracks.');
+      utils.setLoading(1000, 'Exploring...', '1:00', function() {
+        if (utils.roll(0.2)) {
+          utils.pushView('battle');
           return;
         }
-        _.pushView('hunt');
+        utils.pushView('hunt');
       });
     } else {
-      _.addMessage('You do not have enough stamina.');
+      utils.addMessage('You do not have enough stamina.');
     }
   };
 
@@ -459,13 +451,13 @@ export function forest() {
     let frequency = animals[key];
     let animal = getAnimal(key);
 
-    let skill = GAME_STATE['druid']['tracking_skill'];
+    let skill = utils.getTrackingSkill();
     let has_special = frequency['has_special'];
     frequency = frequency['frequency'];
     let frequencyBonus = getFrequencyBonus(frequency);
 
-    let prob =
-        _.probDcCheck(skill + frequencyBonus, animal['tracking_difficulty']);
+    let prob = utils.probDcCheck(
+        skill + frequencyBonus, animal['tracking_difficulty']);
 
     template_data['animals'].push({
       'name': key,
@@ -477,111 +469,7 @@ export function forest() {
   return template_data;
 }
 
-export function camp() {
-  let template_data = {};
-  template_data['on_start'] = function() {
-    let skill = GAME_STATE['druid']['camping_skill'];
-    if (skill >= 10) {
-      GAME_STATE['sleeping_spot'] = 'nice';
-    } else {
-      GAME_STATE['sleeping_spot'] = 'poor';
-    }
-    GAME_STATE['camp_setup'] = false;
-    GAME_STATE['bonfire_lit'] = false;
-    GAME_STATE['random_encounter'] = 0.2;
-  };
-
-  template_data['random_encounter'] = _.getRandomEncounterChance();
-  template_data['find_spot'] = function() {
-    if (!_.canAct(5)) {
-      return;
-    }
-
-    _.setLoading(1000, 'Finding spot...', '1:00', function() {
-      let skill = GAME_STATE['druid']['camping_skill'];
-      let result = _.rollD(20) + skill;
-      if (result <= 8) {
-        GAME_STATE['sleeping_spot'] = 'poor';
-      } else if (result <= 15) {
-        GAME_STATE['sleeping_spot'] = 'normal';
-      } else {
-        GAME_STATE['sleeping_spot'] = 'nice';
-      }
-      GAME_STATE['camp_setup'] = false;
-      GAME_STATE['bonfire_lit'] = false;
-      GAME_STATE['random_encounter'] = 0.2;
-    });
-  };
-
-  template_data['setup_camp'] = function() {
-    let skill = GAME_STATE['druid']['camping_skill'];
-    let cost = (skill < 5) ? 5 : 0;
-    if (!_.canAct(cost)) {
-      return;
-    }
-
-    GAME_STATE['camp_setup'] = true;
-  };
-
-  template_data['light_bonfire'] = function() {
-    // if (!_.canAct(2)) {
-    //   return;
-    // }
-
-    GAME_STATE['bonfire_lit'] = true;
-  };
-
-  template_data['eat'] = function() {
-    if (!_.consumeItem('Ration')) {
-      addMessage('You do not have enough rations.');
-      return;
-    }
-
-    GAME_STATE['druid']['food'] += 2;
-    GAME_STATE['druid']['food'] =
-        Math.min(GAME_STATE['druid']['max_food'], GAME_STATE['druid']['food']);
-  };
-
-  template_data['skin'] = function() {
-    _.pushView('skin');
-  };
-
-  let rate = _.getStaminaRecoveryRate();
-  template_data['rate'] = rate;
-
-  template_data['rest'] = function() {
-    _.rest();
-  };
-
-  template_data['rations'] = _.getItemQuantity('Ration');
-  return template_data;
-}
-
-export function skin() {
-  let template_data = {};
-
-  let carcasses = [];
-  for (let item of GAME_STATE['druid']['items']) {
-    if (!_.getItemData(item.name)['carcass']) continue;
-    carcasses.push(item);
-  }
-
-  let items = [];
-  for (let item of carcasses) {
-    item['value'] = _.getItemData(item.name)['value'];
-    item['fn'] = function() {
-      // GAME_STATE['current_loot'] =
-      //     GAME_STATE['current_loot'].filter(_item => _item !== item);
-    };
-    items.push(item);
-  }
-  template_data['items'] = items;
-  return template_data;
-}
-
 renderer.models['hunt'] = track;
 renderer.models['sneak'] = sneak;
 renderer.models['loot'] = loot;
 renderer.models['forest'] = forest;
-renderer.models['camp'] = camp;
-renderer.models['skin'] = skin;

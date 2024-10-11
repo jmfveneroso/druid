@@ -2,6 +2,7 @@
 @template stats
 
 @env.type                @
+Disease Prob: @env.disease_chance @
 
 @forv a in animals
 @a.name         @ @a.has_special-@ @a.population@ @a.prob@

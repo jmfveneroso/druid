@@ -1,7 +1,6 @@
 import {GAME_STATE} from './data.js';
-import {run} from './main.js';
-import {renderer} from './renderer.js';
-import * as _ from './yaml.js';
+import {utils} from './general.js';
+import {renderer, run} from './renderer.js';
 
 Object.assign(GAME_STATE, {
   'battle_state': 'START',
@@ -55,10 +54,10 @@ function rollInitiatives() {
       continue;
     }
 
-    let enemyInit = _.rollD(20) + enemy(i)['init_bonus'];
+    let enemyInit = utils.rollD(20) + enemy(i)['init_bonus'];
     initiatives.push(['E' + i, enemyInit]);
   }
-  let playerInit = _.rollD(20) + GAME_STATE['druid']['init_bonus'];
+  let playerInit = utils.rollD(20) + GAME_STATE['druid']['init_bonus'];
   initiatives.push(['P', playerInit]);
 
   // let initiatives = [['E1', enemyInit], ['P', playerInit]];
@@ -67,8 +66,8 @@ function rollInitiatives() {
 }
 
 export function flickerEnemy(i) {
-  let dirX = _.rollD(3) - 2;
-  let dirY = _.rollD(3) - 2;
+  let dirX = utils.rollD(3) - 2;
+  let dirY = utils.rollD(3) - 2;
 
   enemy(i)['pos'][0] += dirX;
   enemy(i)['pos'][1] += dirY;
@@ -84,7 +83,7 @@ function updateLoop() {
   for (let i = 0; i < 3; i++) {
     if (!enemy(i)['present']) continue;
 
-    if (_.rollD(8) == 8 && enemy(i)['took_hit'] == 0) {
+    if (utils.rollD(8) == 8 && enemy(i)['took_hit'] == 0) {
       flickerEnemy(i);
     }
   }
@@ -159,10 +158,20 @@ export function addMessage(msg) {
 }
 
 export function runEnemyTurn(i) {
-  let roll = enemy(i)['hit_bonus'] + _.rollD(20);
-  if (roll >= _.getDruidArmorClass()) {
-    let dmg = _.rollD(enemy(i)['damage']);
-    _.hitDruid(dmg);
+  let roll = utils.rollD(20);
+
+  if (roll >= 19) {  // critical
+    let dmg = utils.rollD(enemy(i)['damage']);
+    utils.hitDruid(dmg);
+    addMessage(`(${roll}) CRITICAL: the enemy hit with ${dmg} dmg.`);
+
+    let organ =
+        ['heart', 'lungs', 'liver', 'stomach', 'brain'][utils.rollD(5) - 1];
+    utils.damageOrgan(organ, 1);
+    addMessage(`You took 1 damage to ${organ}.`);
+  } else if (roll + enemy(i)['hit_bonus'] >= utils.getDruidArmorClass()) {
+    let dmg = utils.rollD(enemy(i)['damage']);
+    utils.hitDruid(dmg);
     addMessage(`(${roll}) The enemy hit with ${dmg} dmg.`);
   } else {
     addMessage(`(${roll}) The enemy missed.`);
@@ -184,14 +193,14 @@ export function attack(i) {
   }
 
   let penalty = 0;
-  if (!_.useAbility(GAME_STATE['sword_swing_cost'])) {
+  if (!utils.useAbility(GAME_STATE['sword_swing_cost'])) {
     addMessage(`You don't have enough stamina.`);
     penalty = 5;
   }
 
-  let roll = GAME_STATE['druid']['sword_skill'] + _.rollD(20) - penalty;
+  let roll = utils.getSwordSkill() + utils.rollD(20) - penalty;
   if (roll >= enemy(i)['ac']) {
-    let dmg = _.rollMeleeDamage();
+    let dmg = utils.rollMeleeDamage();
     GAME_STATE['battle_enemies'][i]['hp'] -= Math.min(dmg, enemy(i)['hp']);
     GAME_STATE['battle_enemies'][i]['took_hit'] = 10;
     addMessage(`(${roll}) You hit the enemy for ${dmg} HP.`);
@@ -204,9 +213,10 @@ export function attack(i) {
       GAME_STATE['current_loot'] = [];
       for (let i = 0; i < 3; i++) {
         if (!enemy(i)['loot']) continue;
-        GAME_STATE['current_loot'] = GAME_STATE['current_loot'].concat(enemy(i)['loot']);
+        GAME_STATE['current_loot'] =
+            GAME_STATE['current_loot'].concat(enemy(i)['loot']);
       }
-      _.popAndPushView('loot');
+      utils.popAndPushView('loot');
       GAME_STATE['show_leave'] = true;
     }
   } else {
@@ -220,15 +230,15 @@ export function escape() {
     return;
   }
 
-  if (!_.useAbility(5)) {
+  if (!utils.useAbility(5)) {
     addMessage(`You don't have enough stamina.`);
     return;
   }
 
-  if (_.dcCheck(_.getSneakingSkill(), 10)) {
+  if (utils.dcCheck(utils.getSneakingSkill(), 10)) {
     GAME_STATE['show_leave'] = true;
-    _.addMessage(`You escaped.`);
-    _.popView();
+    utils.addMessage(`You escaped.`);
+    utils.popView();
     return;
   }
 
@@ -254,6 +264,8 @@ export function rollEncounter() {
 export function battle() {
   let data = {};
   data['on_start'] = function() {
+    GAME_STATE['battle_state'] = 'START';
+    GAME_STATE['initiatives'] = [];
     GAME_STATE['show_leave'] = false;
     let enemies = rollEncounter();
 
@@ -309,7 +321,7 @@ export function battle() {
   }
 
   data['atk'] = attack;
-  data['escape_chance'] = _.probDcCheck(_.getSneakingSkill(), 10);
+  data['escape_chance'] = utils.probDcCheck(utils.getSneakingSkill(), 10);
   data['escape'] = escape;
 
   clearTimeout(GAME_STATE['refresh']);
@@ -319,9 +331,15 @@ export function battle() {
 
   data['turns'] = GAME_STATE['initiatives'].join('==');
 
-  data['attack0'] = function () { attack(0); };
-  data['attack1'] = function () { attack(1); };
-  data['attack2'] = function () { attack(2); };
+  data['attack0'] = function() {
+    attack(0);
+  };
+  data['attack1'] = function() {
+    attack(1);
+  };
+  data['attack2'] = function() {
+    attack(2);
+  };
 
   return data;
 }

@@ -1,454 +1,653 @@
-import {HerbGathering} from './gather.js';
-import {availableHerbs, herbMap, updateHerbMap} from './herbs.js';
-import {Patient} from './patient.js';
-import {Potion} from './potion.js';
-import {HerbGatheringGame} from './hotcold.js';
-
-const MOURNING_DURATION = 4;
-const RUNE_DISCOVERY_CHANCE = 0.5;
-const DAYS_TO_GATHER = 1;
-const DAYS_TO_TRAVEL = 2;
-const DAYS_TO_REMOVE_MIASMA = 3;
-
-const complementaryRunes = {
-  'A': 'B',
-  'B': 'A',
-  'C': 'D',
-  'D': 'C'
-};
+import {GAME_STATE} from './data.js';
+import {utils} from './general.js';
+import {renderer} from './renderer.js';
 
 export class Druid {
-  constructor() {
-    this.herbGathering = new HerbGathering();
-
-    this.mourning = 0;
-    this.days = 1;
-    this.theoreticalDays = 1;
-    this.gameState = 'MAIN';
-    this.setState('MAIN');
-    this.msg = ['Welcome to The Druid Game!'];
-    this.cursor = 0;
-    this.cursorP = 0;
-    this.cursorMiasma = 0;
-    this.windowP = 0;
-    this.windowPSize = 1;
-    this.cursorMain = 0;
-    this.cursorE = 0;
-    this.cursorVillage = 0;
-    this.selectedVillage = 0;
-    this.selectedHerbs = [];  // Herbs selected for combination
-    this.usedPotions = [];
-    this.crystals = 0;
-    this.combinationMap = {};
-    this.initCombinationMap();
-    this.mainMenuOptions = {
-      '(I)nventory': 'POTION',
-      '(G)ather': 'CHOOSE_ENVIRONMENT',
-      '(W)ait': 'WAIT',
-      // "druid": "DRUID",
-    };
-    this.logStartAt = 0;
-    this.map = new Map();
-    this.lastEnvironment = undefined;
-
-    
-    // Druid leveling system
-    this.level = 1;
-    this.xp = 0;
-    this.xpToNextLevel = 100;  // XP needed to level up
-    this.maxDrugs = 2;
-    this.gold = 100;
-    this.stamina = 100;
+  constructor(renderer, x, y, onclick_fn) {
+    this.renderer = renderer;
+    this.buffer = this.createBuffer(MAX_WIDTH, MAX_HEIGHT);
+    this.max_width = 0;
+    this.max_height = 0;
+    this.current_char = 0;
+    this.current_line = 0;
+    this.counter = renderer.counter;
+    this.onclick = onclick_fn;
+    this.parent_x = x;
+    this.parent_y = y;
   }
+}
 
-  discardHerb(herbName) {
-    this.herbGathering.useHerb(herbName);
-  }
-
-  knowsHerbEffect(herbName) {
-    return herbMap[herbName].known;
-  }
-
-  discoverHerbEffect(herbName) {
-    if (!this.knowsHerbEffect(herbName)) {
-      herbMap[herbName].known = true;
-      this.msg.push(`You unveiled ${herbName}.`);
-      this.msg.push(`${herbMap[herbName].effectDescription}`);
-    } else {
-      this.msg.push(`The effect was already known.`);
-    }
-
-    if (Math.random() < RUNE_DISCOVERY_CHANCE) {
-      const i = Math.floor(Math.random() * 3);
-      this.revealRune(herbName, i);
-    }
-  }
-
-  gatherIngredients(env) {
-    this.clearMsgs();
-
-    let gatheredHerbs = this.herbGathering.gather(env);
-    let totalHerbs = this.herbGathering.getTotal();
-    this.writeMsg(`Gathered herbs in the ${env.name}.`);
-    this.progressGameForDays(DAYS_TO_GATHER);
-    this.writeMsg(`${DAYS_TO_GATHER} days have passed.`);
-    this.writeMsg('');
-    for (let h of gatheredHerbs) {
-      let total = this.herbGathering.inventory[h];
-      let desc = herbMap[h].known ? herbMap[h].effectDescription : "???";
-      this.writeMsg(`+1 ${h} (total: ${total})`);
-      this.writeMsg(`  -> ${desc}`);
-    }
-    this.writeMsg('');
-    this.writeMsg(`Total ingredients: ${totalHerbs}`);
-    this.setState('MSG');
-    this.setNextState('MAP');
-  }
-
-  travel(pos) {
-    const village = villages[pos];
-    this.clearMsgs();
-    this.selectedVillage = pos;
-    this.writeMsg(`Travelled to ${village.name}.`);
-    this.progressGameForDays(DAYS_TO_TRAVEL);
-    this.writeMsg(`${DAYS_TO_TRAVEL} days have passed.`);
-    this.setState('MSG');
-  }
-
-  revealRune(herbName) {
-    for (let i = 0; i < 3; i++) {
-      if (herbMap[herbName].revealedRunes[i] == '*') {
-        herbMap[herbName].revealedRunes[i] = herbMap[herbName].runes[i];
-        break;
-      }
-    }
-  }
-
-  treatPatient(patientId, herbName) {
-    const patient = this.currentVillage().getPatients()[patientId];
-    patient.treatPatient(herbName, this);
-    this.revealRune(herbName);
-  }
-
-  progressGame() {
-    villages.forEach(v => v.progress(this));
-
-    villages.forEach(v => {
-      v.villagers.forEach(patient => {
-        if (patient.isSick() && !patient.dead && !patient.cured) {
-          patient.progress(this, this.days);
-        }
-
-        if (patient.isDead() && patient.dead === false) {
-          patient.dead = true;
-          this.mourning += MOURNING_DURATION;
-          this.msg.push(`Patient ${patient.id} in ${v.name} has died.`);
-          const patch = v.createMiasmaPatch();
-          patch.increaseStrength();
-          patient.powerups.push([
-            `Death`,
-            () => {
-              // v.villagers = v.villagers.filter(p => p !== patient);
-              v.deadCount += 1;
-            }
-          ]);
-          patient.logMsg(`${patient.id} has died!`);
-          v.logMsg(`${patient.id} has died!`);
-          v.logMsg(`A new miasma patch has formed at ${patch.location}.`);
-        } else if (patient.isCured() && patient.cured === false) {
-          patient.cured = true;
-          let druid = this;
-          patient.logMsg(`${patient.id} is cured!`);
-          v.logMsg(`Patient ${patient.id} in ${
-              v.name} is cured. You gained a crystal.`);
-          patient.powerups.push([
-            `Crystal`,
-            () => {
-              v.curedCount += 1;
-              druid.crystals += 1;
-            }
-          ]);
-          if (!patient.disease.diseaseType.known) {
-            patient.disease.diseaseType.known = true;
-            const dName = patient.disease.diseaseType.name;
-            this.msg.push(`Discovered disease ${dName}`);
-          }
-          this.gainXp(50);  // Example amount of XP gained per cured patient
-        }
-      });
-    
-      villages.forEach(v => {
-        v.villageMap.updateMap();
-      });
-    });
-
-    this.herbGathering.progress();
-    this.days += 1;
-    this.theoreticalDays = this.days;
+utils.useAbility = function(stamina_cost) {
+  if (GAME_STATE['stamina'] >= stamina_cost) {
+    GAME_STATE['stamina'] -= stamina_cost;
     return true;
   }
+  return false;
+};
 
-  progressGameForDays(days) {
-    for (let i = 0; i < days; i++) {
-      if (!this.progressGame()) {
-        return false;
-      }
-    }
-    return true;
+utils.canAct = function(cost) {
+  if (GAME_STATE['debug']) return true;
+
+  if (utils.isOverweight()) {
+    utils.addMessage(`You are overweight.`);
+    return false;
   }
 
-  setNextState(newState) {
-    this.nextState = newState;
+  if (!utils.useAbility(cost)) {
+    utils.addMessage(`You do not have enough stamina.`);
+    utils.popView();
+    return false;
   }
 
-  setState(newState) {
-    this.gameState = newState;
-    switch (newState) {
-      case 'MAIN':
-        this.selectedHerbs = [];
-        break;
-      case 'CHOOSE_ENVIRONMENT':
-        break;
-      case 'REMOVE_MIASMA':
-        break;
-      case 'TREATING_PATIENT':
-        break;
-      case 'VILLAGE':
-        break;
-      case 'TRAVELLING':
-        break;
-      case 'MSG':
-        this.logStartAt = 0;
-        break;
-      case 'WAIT':
-        this.progressGame();
-        this.setState(this.nextState);
-        break;
-      default:
-        if (['TREATING', 'DISCOVERING', 'SELECT_POTION'].includes(newState)) {
-          // this.cursor = 0;
-        }
-        break;
-    }
+  return true;
+};
+
+utils.getDruidArmorClass = function() {
+  return 10 + GAME_STATE['druid']['armor']['bonus'];
+};
+
+utils.setStatus = function(new_status) {
+  GAME_STATE['druid']['status'][new_status] = true;
+};
+
+utils.removeStatus = function(new_status) {
+  GAME_STATE['druid']['status'][new_status] = false;
+};
+
+utils.hasStatus = function(status) {
+  return GAME_STATE['druid']['status'][status];
+};
+
+function getPenaltyAfterStatus(status, critical_status) {
+  if (utils.hasStatus(status)) {
+    return 2;
+  } else if (utils.hasStatus(critical_status)) {
+    return 4;
   }
+  return 0;
+}
 
-  currentVillage() {
-    return this.map.getCurrentVillage();
+function getMultiplierAfterStatus(status, critical_status) {
+  let multiplier = 1.0;
+  if (utils.hasStatus(status)) {
+    multiplier = 0.75;
+  } else if (utils.hasStatus(critical_status)) {
+    multiplier = 0.5;
   }
+  return multiplier;
+}
 
-  combinePotion() {
-    this.clearMsgs();
+function getSkillAfterStatus(skill_name, status, critical_status) {
+  let skill = GAME_STATE['druid'][skill_name + '_skill'];
+  let penalty = getPenaltyAfterStatus(status, critical_status);
+  return skill + penalty;
+}
 
-    if (this.selectedHerbs.length >= 2) {
-      const [herbName1, herbName2] = this.selectedHerbs;
-      if (!this.herbGathering.useTwoHerbs(herbName1, herbName2)) {
-        this.msg.push('Not enough herbs to combine.');
-        return;
-      }
+utils.getSwordSkill = function() {
+  return getSkillAfterStatus('sword', 'bleeding', 'hemorrhaging');
+};
 
-      this.revealRune(herbName1);
-      this.revealRune(herbName2);
+utils.getBowSkill = function() {
+  return getSkillAfterStatus('bow', 'confused', 'hallucinating');
+};
 
-      const potion = new Potion(this.selectedHerbs, this.combinationMap);
-      if (potion.isSuccessful()) {
-        const newHerb = potion.getNewHerb();
-        this.herbGathering.inventory[newHerb] += 1;
-        this.msg.push(`Potion successful! Created: ${newHerb}`);
-        this.discoverHerbEffect(newHerb);
-      } else {
-        this.msg.push('Potion combination failed!');
-      }
-    } else {
-      this.msg.push('Select at least two herbs to combine.');
-    }
+utils.getSneakingSkill = function() {
+  let skill = getSkillAfterStatus('sneaking', 'debilitated', 'poisoned');
+  return skill + GAME_STATE['druid']['boots']['bonus'];
+};
 
-    this.selectedHerbs = [];
+utils.getTrackingSkill = function() {
+  return getSkillAfterStatus('tracking', 'fatigued', 'exhausted');
+};
+
+utils.getCampingSkill = function() {
+  return getSkillAfterStatus('camping', 'nauseous', 'retching');
+};
+
+utils.getOrganState = function(organ) {
+  if (GAME_STATE['druid'][organ + '_hp'] <= 0) {
+    return 'critical';
+  } else if (GAME_STATE['druid'][organ + '_hp'] <= 5) {
+    return 'impaired';
   }
+  return 'healthy';
+};
 
-  selectHerbForCombination(herb) {
-    if (this.selectedHerbs.includes(herb)) {
-      this.selectedHerbs = this.selectedHerbs.filter(h => h !== herb);
-    } else {
-      this.selectedHerbs.push(herb);
-    }
-  }
+utils.getMaxHp = function() {
+  let max_hp = GAME_STATE['druid']['max_hp'];
 
-  gainXp(amount) {
-    this.xp += amount;
-    if (this.xp >= this.xpToNextLevel) {
-      this.levelUp();
-    }
-  }
+  let multiplier = getMultiplierAfterStatus('bleeding', 'hemorrhaging');
+  return max_hp * multiplier;
+};
 
-  levelUp() {
-    this.level += 1;
-    this.xp -= this.xpToNextLevel;
-    this.xpToNextLevel = Math.floor(this.xpToNextLevel * 1.5);
-    this.msg.push(`Congratulations! You have reached Level ${this.level}.`);
-  }
 
-  removeMiasma() {
-    if (this.crystals <= 0) {
-      return;
-    }
-    this.crystals -= 1;
+utils.getMaxStamina = function() {
+  let max_stamina = GAME_STATE['druid']['max_stamina'];
 
-    const patch = this.currentVillage().miasmaPatches[this.cursorMiasma];
-    patch.decreaseStrength();
+  let multiplier = getMultiplierAfterStatus('fatigued', 'exhausted');
+  return max_stamina * multiplier;
+};
 
-    this.writeMsg(`Performed ritual in the miasma patch in ${patch.location}.`);
-    this.progressGameForDays(DAYS_TO_REMOVE_MIASMA);
-    this.writeMsg(`${DAYS_TO_REMOVE_MIASMA} days have passed.`);
-  }
+utils.rollMeleeDamage = function() {
+  let dmg = utils.rollD(GAME_STATE['druid']['melee']['base_die']) +
+      GAME_STATE['druid']['melee']['bonus'];
 
-  initCombinationMap() {
-    const keys = Object.keys(herbMap).slice(0, 20);
-    keys.sort(() => Math.random() - 0.5);
+  dmg -= getPenaltyAfterStatus('debilitated', 'poisoned');
+  return Math.max(1, dmg);
+};
 
-    const newHerbs = [
-      'Solar Blossom', 'Shadowthorn', 'Sky Fungus', 'Verdant Vine', 'Ironleaf'
-    ];
+utils.rollRangedDamage = function() {
+  let dmg = utils.rollD(GAME_STATE['druid']['ranged']['base_die']) +
+      GAME_STATE['druid']['ranged']['bonus'] + utils.getBowSkill();
 
-    newHerbs.forEach(newHerb => {
-      const herb1 = keys.pop();
-      const herb2 = keys.pop();
-      this.combinationMap[newHerb] = new Set([herb1, herb2])
-    });
+  dmg -= getPenaltyAfterStatus('confused', 'hallucinating');
+  return dmg;
+};
 
-    this.generateRunesForHerbs();
-    updateHerbMap();
-    // this.revealAllRunes();
-  }
-
-  generateRunesForHerbs() {
-    for (let herb in herbMap) {
-      const runes =
-          Array.from({length: 3}, () => 'ABCD'[Math.floor(Math.random() * 4)]);
-      herbMap[herb].runes = runes;
-    }
-
-    Object.keys(this.combinationMap).forEach((new_herb) => {
-      let [herb1, herb2] = this.combinationMap[new_herb];
-      const runes = ['*', '*', '*'];
-      for (let i = 0; i < 3; i++) {
-        runes[i] = complementaryRunes[herbMap[herb1].runes[i]];
-      }
-      herbMap[herb2].runes = runes;
-    });
-  }
-
-  revealAllRunes() {
-    Object.keys(herbMap).forEach((herb) => {
-      herbMap[herb].revealedRunes = herbMap[herb].runes;
-    });
-  }
-
-  writeMsg(msg) {
-    this.msg.push(msg);
-  }
-
-  clearMsgs() {
-    this.msg = [];
-  }
-
-  moveLog(offset, maxLen) {
-    this.logStartAt += offset;
-    this.logStartAt = Math.max(0, Math.min(this.logStartAt, maxLen));
-  }
-
-  processLogs(logs, maxLen) {
-    const processedLogs = [];
-
-    logs.forEach(log => {
-      if (log.length <= maxLen) {
-        processedLogs.push(log);
-      } else {
-        let startIndex = 0;
-        while (startIndex < log.length) {
-          let chunk = log.substring(startIndex, startIndex + maxLen);
-          if (startIndex !== 0) {
-            processedLogs[processedLogs.length - 1] += '...';
-            chunk = chunk;
-          }
-          processedLogs.push(chunk);
-          startIndex += maxLen;
-        }
-      }
-    });
-    return processedLogs;
-  }
-
-  increaseTheoreticalDays(increase) {
-    this.theoreticalDays += increase;
-    this.theoreticalDays = Math.max(1, this.theoreticalDays);
-    this.theoreticalDays = Math.min(this.theoreticalDays, this.days);
-  }
-
-  move(x, y) {
-    this.setState('HUNT');
+utils.increaseSkill = function(skill) {
+  let cost = GAME_STATE['druid'][skill] + 1;
+  if (GAME_STATE['druid']['skill_points'] >= cost) {
+    GAME_STATE['druid']['skill_points'] -= cost;
+    GAME_STATE['druid'][skill] += 1;
     return;
-
-    if (!this.map.moveDruid(x, y)) {
-      return;
-    }
-
-    let env = this.map.getCurrentEnvironment();
-    
-    if (env.name == "Forest") {
-      this.setState('HUNT');
-      return;
-    }
-
-    if (false) {
-      if (this.map.getCurrentVillage()) {
-        this.enterVillage();
-      } else {
-        this.startHotCold(env);
-        this.setNextState('HOT_COLD');
-      }
-      return;
-    }
-
-    if (this.lastEnvironment !== env) {
-      env.resetWeights();
-    } else {
-      env.boostWeights();
-    }
-
-    this.gatherIngredients(env);
-    this.setNextState('MAP');
   }
 
-  startHotCold(environment) {
-    this.game = new HerbGatheringGame(environment);
-    this.setState('HOT_COLD');
+  utils.addMessage('You do not have enough skill points');
+};
+
+utils.getRangedWeapon = function() {
+  return GAME_STATE['druid']['ranged']['name'];
+};
+
+utils.equipWeapon = function(item_name) {
+  if (item_name === 'Silver Sword' && getSwordSkill() < 4) {
+    utils.addMessage('You need sword > 4 to equip a silver sword.');
+    return;
   }
 
-  enterVillage(village) {
-    this.setState('VILLAGE_MAP');
+  if (item_name === 'Gold Sword' && getSwordSkill() < 7) {
+    utils.addMessage('You need sword > 7 to equip a gold sword.');
+    return;
   }
 
-  selectVillager(villager) {
-    for (let i = 0; i < this.currentVillage().getPatients().length; i++) {
-      let p = this.currentVillage().getPatients()[i];
-      if (p.id == villager.id) {
-        this.cursorP = i;
-        this.setState('VILLAGE');
-        return;
-      }
+  if (item_name === 'Platinum Sword' && getSwordSkill() < 10) {
+    utils.addMessage('You need sword > 10 to equip a Platinum Sword.');
+    return;
+  }
+
+  let item_data = GAME_STATE['items'][item_name];
+
+  utils.consumeItem(item_name);
+  utils.acquireItem(GAME_STATE['druid']['melee']['name'], 1);
+
+  GAME_STATE['druid']['melee']['name'] = item_name;
+  GAME_STATE['druid']['melee']['base_die'] = item_data['base_die'];
+  GAME_STATE['druid']['melee']['bonus'] = item_data['bonus'];
+};
+
+utils.equipRangedWeapon = function(item_name) {
+  if (item_name === 'Silver Bow' && utils.getBowSkill() < 4) {
+    utils.addMessage('You need bow > 4 to equip a silver bow.');
+    return;
+  }
+
+  if (item_name === 'Gold Bow' && utils.getBowSkill() < 7) {
+    utils.addMessage('You need bow > 7 to equip a gold bow.');
+    return;
+  }
+
+  if (item_name === 'Gun' && utils.getBowSkill() < 10) {
+    utils.addMessage('You need bow > 10 to equip a gun.');
+    return;
+  }
+
+  let item_data = GAME_STATE['items'][item_name];
+
+  utils.consumeItem(item_name);
+  utils.acquireItem(GAME_STATE['druid']['ranged']['name'], 1);
+
+  GAME_STATE['druid']['ranged']['name'] = item_name;
+  GAME_STATE['druid']['ranged']['base_die'] = item_data['base_die'];
+  GAME_STATE['druid']['ranged']['bonus'] = item_data['bonus'];
+};
+
+utils.equipArmor = function(item_name) {
+  let item_data = GAME_STATE['items'][item_name];
+
+  utils.consumeItem(item_name);
+  utils.acquireItem(GAME_STATE['druid']['armor']['name'], 1);
+
+  GAME_STATE['druid']['armor']['name'] = item_name;
+  GAME_STATE['druid']['armor']['bonus'] = item_data['bonus'];
+};
+
+utils.equipBoots = function(item_name) {
+  let item_data = GAME_STATE['items'][item_name];
+
+  utils.consumeItem(item_name);
+  utils.acquireItem(GAME_STATE['druid']['boots']['name'], 1);
+
+  GAME_STATE['druid']['boots']['name'] = item_name;
+  GAME_STATE['druid']['boots']['bonus'] = item_data['bonus'];
+};
+
+utils.cureOrgan =
+    function(organ, amount, can_cure_critical) {
+  if (GAME_STATE['druid'][organ + '_hp'] == 0 && !can_cure_critical) {
+    return false;
+  }
+
+  GAME_STATE['druid'][organ + '_hp'] += amount;
+  if (GAME_STATE['druid'][organ + '_hp'] >=
+      GAME_STATE['druid'][organ + '_max_hp']) {
+    GAME_STATE['druid'][organ + '_hp'] = GAME_STATE['druid'][organ + '_max_hp'];
+    GAME_STATE['druid'][organ + '_diseases'] = [];
+  }
+}
+
+    utils.usePotion = function(item_name) {
+  let item_data = GAME_STATE['items'][item_name];
+
+  utils.consumeItem(item_name);
+  if (item_name === 'Elixir') {
+    GAME_STATE['druid']['hp'] = utils.getMaxHp();
+    GAME_STATE['druid']['food'] = GAME_STATE['druid']['max_food'];
+    GAME_STATE['druid']['stamina'] = GAME_STATE['druid']['max_stamina'];
+  }
+
+  const words = item_name.split(' ');
+  let firstWord = words[0].toLowerCase();
+
+  if (Object.keys(organ_stats).includes(firstWord)) {
+    utils.cureOrgan(firstWord, 10, false);
+  }
+
+  firstWord = firstWord.slice(0, -1);
+  if (Object.keys(organ_stats).includes(firstWord)) {
+    utils.cureOrgan(firstWord, 10, true);
+  }
+};
+
+utils.hitDruid = function(dmg) {
+  GAME_STATE['druid']['hp'] -= Math.min(dmg, GAME_STATE['druid']['hp']);
+  if (GAME_STATE['druid']['hp'] <= 0) {
+    utils.pushView('game_over');
+    return true;
+  }
+  return false;
+};
+
+utils.damageOrgan = function(organ, dmg) {
+  GAME_STATE['druid'][organ + '_hp'] -=
+      Math.min(dmg, GAME_STATE['druid'][organ + '_hp']);
+};
+
+utils.isInVillage = function() {
+  const grid = GAME_STATE['map_grid'];
+  const i = GAME_STATE['druid']['position']['x'];
+  const j = GAME_STATE['druid']['position']['y'];
+
+  const village_index = grid[i][j]['village'];
+  return (village_index !== undefined);
+};
+
+utils.isOverweight = function() {
+  return utils.getCurrentWeight() > GAME_STATE['druid']['max_weight'];
+};
+
+utils.getArrowSpeed = function() {
+  if (utils.getRangedWeapon() === 'Gun') {
+    return 5;
+  }
+
+  if (utils.getRangedWeapon() === 'Gold Bow') {
+    return true;
+  }
+
+  return 1;
+};
+
+utils.hasDoubleArrows = function() {
+  if (utils.getRangedWeapon() === 'Gun') {
+    return false;
+  }
+
+  if (utils.getRangedWeapon() === 'Silver Bow') {
+    return true;
+  }
+
+  if (utils.getRangedWeapon() === 'Gold Bow') {
+    return true;
+  }
+
+  return false;
+};
+
+utils.takeAction = function(skill, dc) {
+  if (!utils.canAct(5)) {
+    return false;
+  }
+
+  let missChance = 0.0;
+  if (utils.hasStatus('confused')) {
+    missChance = 0.1;
+  } else if (utils.hasStatus('hallucinating')) {
+    missChance = 0.2;
+  }
+};
+
+function getRandomDisease() {
+  let diseaseTypes = GAME_STATE['disease_types'];
+
+  // Calculate the cumulative probability distribution
+  let cumulativeProbability = 0;
+  const probabilityRanges = [];
+  for (const disease in diseaseTypes) {
+    cumulativeProbability += diseaseTypes[disease].chance;
+    probabilityRanges.push({
+      disease,
+      range: [
+        cumulativeProbability - diseaseTypes[disease].chance,
+        cumulativeProbability
+      ]
+    });
+  }
+
+  // Generate a random number between 0 and 1
+  const randomNumber = Math.random();
+
+  // Find the disease within the corresponding probability range
+  for (const {disease, range} of probabilityRanges) {
+    if (randomNumber >= range[0] && randomNumber < range[1]) {
+      return disease;
     }
-    this.setState('VILLAGE_MAP');
   }
 
-  updateCursorP(newValue) {
-    this.cursorP = Math.max(
-        0, Math.min(newValue, this.currentVillage().getPatients().length - 1));
+  // Should not reach here if probabilities add up to 1
+  return null;
+};
 
-    if (this.cursorP >= this.windowP + this.windowPSize) {
-      this.windowP += 1;
-    }
-    if (this.cursorP < this.windowP) {
-      this.windowP -= 1;
+utils.contractDisease = function() {
+  let disease_name = getRandomDisease();
+  utils.addMessage('You contracted ' + disease_name);
+
+  GAME_STATE['disease_types'][disease_name]['organs'].forEach(function(organ) {
+    GAME_STATE['druid'][organ + '_diseases'].push(disease_name);
+  });
+};
+
+// =============================================================================
+// UPDATERS
+// =============================================================================
+
+function processStatuses() {
+  for (let status in GAME_STATE['druid']['status']) {
+    switch (status) {
+      // Reduce MAX HP.
+      case 'bleeding':
+        break;
+      case 'hemorrhaging':
+        break;
+      // Reduce MAX Stamina.
+      case 'fatigued':
+        break;
+      case 'exhausted':
+        break;
+      // Reduce Attack Damage.
+      case 'debilitated':
+        break;
+      case 'poisoned':
+        break;
+      // Item chance to miss.
+      case 'nauseous':
+        break;
+      case 'retching':
+        break;
+      // Can miss including tracking, etc.
+      case 'confused':
+        break;
+      case 'hallucinating':
+        break;
     }
   }
 }
+
+let organ_stats = {
+  'heart': ['bleeding', 'hemorrhaging'],
+  'lungs': ['fatigued', 'exhausted'],
+  'liver': ['debilitated', 'poisoned'],
+  'stomach': ['nauseous', 'retching'],
+  'brain': ['confused', 'hallucinating'],
+};
+
+let skill_stats = {
+  'sword': ['bleeding', 'hemorrhaging'],
+  'tracking': ['fatigued', 'exhausted'],
+  'sneaking': ['debilitated', 'poisoned'],
+  'camping': ['nauseous', 'retching'],
+  'bow': ['confused', 'hallucinating'],
+};
+
+renderer.updaters['druid_daily'] = {
+  period: 24,
+  fn: function() {
+    let number_critical = 0;
+    for (let organ in organ_stats) {
+      if (GAME_STATE['druid'][organ + '_hp'] == 0) {
+        number_critical++;
+      }
+    }
+
+    if (number_critical >= 2 || GAME_STATE['druid']['hp'] <= 0) {
+      utils.hitDruid(1);
+    }
+
+    let env = utils.getCurrentEnv();
+    if (utils.roll(env['disease_chance'])) {
+      utils.contractDisease();
+    }
+
+    for (let organ in organ_stats) {
+      for (let disease of GAME_STATE['druid'][organ + '_diseases']) {
+        utils.damageOrgan(organ, 1);
+      }
+    }
+  }
+};
+
+renderer.updaters['nauseous'] = {
+  period: 6,
+  fn: function() {
+    if (utils.hasStatus('nauseous')) {
+      GAME_STATE['druid']['food'] -= Math.min(GAME_STATE['druid']['food'], 1);
+    }
+  }
+};
+
+renderer.updaters['retching'] = {
+  period: 1,
+  fn: function() {
+    if (utils.hasStatus('retching')) {
+      GAME_STATE['druid']['food'] -= Math.min(GAME_STATE['druid']['food'], 1);
+    }
+  }
+};
+
+renderer.updaters['druid'] = {
+  period: 0,
+  fn: function() {
+    console.log('regular update');
+
+    for (let organ in organ_stats) {
+      if (GAME_STATE['druid'][organ + '_hp'] == 0) {
+        utils.setStatus(organ_stats[organ][1]);
+        utils.removeStatus(organ_stats[organ][0]);
+      } else if (GAME_STATE['druid'][organ + '_hp'] <= 5) {
+        utils.setStatus(organ_stats[organ][0]);
+        utils.removeStatus(organ_stats[organ][1]);
+      }
+    }
+
+    if (GAME_STATE['druid']['hp'] > utils.getMaxHp()) {
+      GAME_STATE['druid']['hp'] = utils.getMaxHp();
+    }
+
+    if (GAME_STATE['druid']['stamina'] > utils.getMaxStamina()) {
+      GAME_STATE['druid']['stamina'] = utils.getMaxStamina();
+    }
+
+    processStatuses();
+
+    if (GAME_STATE['druid']['hp'] <= 0) {
+      utils.pushView('game_over');
+    }
+  }
+};
+
+// =============================================================================
+// TEMPLATES
+// =============================================================================
+
+function getAffectsOrgansBar() {
+  let bar = '';
+  for (let organ in organ_stats) {
+    if (GAME_STATE['druid'][organ + '_hp'] == 0) {
+      bar += organ[0].upperCase() + ' ';
+    } else if (GAME_STATE['druid'][organ + '_hp'] <= 5) {
+      bar += organ[0] + ' ';
+    } else {
+      bar += '  ';
+    }
+  }
+  return bar;
+}
+
+export function stats(data) {
+  let bar_size = 16;
+  let stamina_percent = GAME_STATE['stamina'] / GAME_STATE['max_stamina'];
+  let s = parseFloat(GAME_STATE['stamina']).toFixed(0);
+  data['stamina_bar'] = '|' +
+      '*'.repeat(stamina_percent * bar_size).padEnd(bar_size) + '| ' + s;
+
+  s = parseFloat(GAME_STATE['druid']['hp']).toFixed(0);
+  let hp_percent = GAME_STATE['druid']['hp'] / utils.getMaxHp();
+
+  let bar = '+'.repeat(hp_percent * bar_size)
+                .padEnd(bar_size)
+                .split('')
+                .reverse()
+                .join('');
+  data['hp_bar'] = s + ' |' + bar + '|';
+
+  s = parseFloat(GAME_STATE['druid']['food']).toFixed(0);
+  let hunger_percent =
+      GAME_STATE['druid']['food'] / GAME_STATE['druid']['max_food'];
+
+  data['food_bar'] = '|' +
+      '`'.repeat(hunger_percent * 10).padEnd(10) + '| ' + s;
+  
+  data['affected_organs'] = getAffectsOrgansBar();
+
+  data['char_click'] = {
+    str: '[CHA]',
+    fn: function() {
+      utils.pushView('druid');
+    }
+  };
+  data['inventory_click'] = {
+    str: '[INV]',
+    fn: function() {
+      utils.pushView('inventory');
+    }
+  };
+
+  if (GAME_STATE['show_leave']) {
+    data['leave'] = {
+      str: '[--X--]',
+      fn: function() {
+        utils.popView();
+      }
+    };
+  } else {
+    data['leave'] = '_______';
+  }
+
+  data['config'] = {
+    str: '[+]',
+    fn: function() {
+      utils.pushView('config')
+    }
+  };
+
+  return data;
+}
+
+function getSkillStr(skill) {
+  let conditions = skill_stats[skill];
+  let penalty = getPenaltyAfterStatus(conditions[0], conditions[1]);
+
+  let str = GAME_STATE['druid'][skill + '_skill'];
+  if (penalty > 0) {
+    str += ' (-' + penalty.toString() + ')';
+  }
+  return str;
+}
+
+function getOrganStr(organ) {
+  if (GAME_STATE['druid'][organ + '_diseases'].length > 0) {
+    return '*';
+  }
+  return ' ';
+}
+
+export function druid(data) {
+  data['ac'] = utils.getDruidArmorClass();
+  data['sword_skill'] = {
+    'str': getSkillStr('sword'),
+    'fn': function() {
+      utils.increaseSkill('sword_skill');
+    }
+  };
+  data['bow_skill'] = {
+    'str': getSkillStr('bow'),
+    'fn': function() {
+      utils.increaseSkill('bow_skill');
+    }
+  };
+  data['sneaking_skill'] = {
+    'str': getSkillStr('sneaking'),
+    'fn': function() {
+      utils.increaseSkill('sneaking_skill');
+    }
+  };
+  data['camping_skill'] = {
+    'str': getSkillStr('camping'),
+    'fn': function() {
+      utils.increaseSkill('camping_skill');
+    }
+  };
+  data['tracking_skill'] = {
+    'str': getSkillStr('tracking'),
+    'fn': function() {
+      utils.increaseSkill('tracking_skill');
+    }
+  };
+  data['skinning_skill'] = {
+    'str': GAME_STATE['druid']['skinning_skill'],
+    'fn': function() {
+      utils.increaseSkill('skinning_skill');
+    }
+  };
+  data['ranged_bonus'] =
+      GAME_STATE['druid']['ranged']['bonus'] + utils.getBowSkill();
+
+  data['heart'] = getOrganStr('heart');
+  data['lungs'] = getOrganStr('lungs');
+  data['liver'] = getOrganStr('liver');
+  data['stomach'] = getOrganStr('stomach');
+  data['brain'] = getOrganStr('brain');
+  return data;
+}
+
+renderer.models['stats'] = stats;
+renderer.models['druid'] = druid;

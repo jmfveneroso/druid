@@ -1,6 +1,6 @@
 import {GAME_STATE} from './data.js';
 import {renderer} from './renderer.js';
-import * as _ from './yaml.js';
+import {utils} from './general.js';
 
 const firstNames = [
   'Aeliana', 'Bran',    'Caius', 'Dara',  'Elara', 'Faelan', 'Gwyn',
@@ -246,10 +246,10 @@ function getVillageMap(village, matrix) {
         if (fn_name.startsWith('house')) {
           let index = fn_name.substr(6);
           GAME_STATE['current_house'] = index;
-          _.pushView('house');
+          utils.pushView('house');
           return;
         }
-        _.pushView(fn_name);
+        utils.pushView(fn_name);
       };
       writeToMatrix(matrix, j, i, symbol, fn);
     }
@@ -274,18 +274,18 @@ function renderVillage() {
 function marketBuy() {
   let data = {};
   data['sell'] = function() {
-    _.popAndPushView('market_sell');
+    utils.popAndPushView('market_sell');
   };
 
   data['market_items'] = [];
   for (let item of GAME_STATE['market']['items']) {
-    item = _.getItemData(item.name);
-    item['q'] = _.getItemQuantity(item.name);
+    item = utils.getItemData(item.name);
+    item['q'] = utils.getItemQuantity(item.name);
     item['buy'] = function() {
-      if (_.spendGold(item['value'])) {
-        _.acquireItem(item.name, 1);
+      if (utils.spendGold(item['value'])) {
+        utils.acquireItem(item.name, 1);
       } else {
-        _.addMessage('You do not have enough gold.');
+        utils.addMessage('You do not have enough gold.');
       }
     };
     data['market_items'].push(item);
@@ -296,16 +296,16 @@ function marketBuy() {
 function marketSell() {
   let data = {};
   data['buy'] = function() {
-    _.popAndPushView('market_buy');
+    utils.popAndPushView('market_buy');
   };
 
   data['druid_items'] = [];
   for (let item of GAME_STATE['druid']['items']) {
-    item = _.getItemData(item['name']);
-    item['q'] = _.getItemQuantity(item.name);
+    item = utils.getItemData(item['name']);
+    item['q'] = utils.getItemQuantity(item.name);
     item['sell'] = function() {
-      _.earnGold(item['value']);
-      _.consumeItem(item['name']);
+      utils.earnGold(item['value']);
+      utils.consumeItem(item['name']);
     };
     data['druid_items'].push(item);
   }
@@ -329,13 +329,13 @@ function blacksmith() {
 
   data['blacksmith_items'] = [];
   for (let item of GAME_STATE['blacksmith_items']) {
-    item = _.getItemData(item['name']);
-    item['q'] = _.getItemQuantity(item.name);
+    item = utils.getItemData(item['name']);
+    item['q'] = utils.getItemQuantity(item.name);
     item['buy'] = function() {
-      if (_.spendGold(item['value'])) {
-        _.acquireItem(item.name, 1);
+      if (utils.spendGold(item['value'])) {
+        utils.acquireItem(item.name, 1);
       } else {
-        _.addMessage('You do not have enough gold.');
+        utils.addMessage('You do not have enough gold.');
       }
     };
     data['blacksmith_items'].push(item);
@@ -347,32 +347,32 @@ function temple() {
   let data = {};
 
   data['heal'] = function () {
-    if (_.spendGold(100)) {
+    if (utils.spendGold(100)) {
       GAME_STATE['druid']['hp'] = GAME_STATE['druid']['max_hp'];
       GAME_STATE['druid']['food'] = GAME_STATE['druid']['max_food'];
     } else {
-      _.addMessage('You do not have enough gold.');
+      utils.addMessage('You do not have enough gold.');
     }
   };
   
   data['rest'] = function () {
-    if (_.spendGold(25)) {
-      _.rest(false, 100);
+    if (utils.spendGold(25)) {
+      utils.rest(false, 100);
     } else {
-      _.addMessage('You do not have enough gold.');
+      utils.addMessage('You do not have enough gold.');
     }
   };
  
   let level_cost = GAME_STATE['druid']['level'] * 50;
   data['lvlc'] = level_cost;
   data['gain_level'] = function () {
-    if (_.spendGold(level_cost)) {
+    if (utils.spendGold(level_cost)) {
       GAME_STATE['druid']['level'] += 1;
       GAME_STATE['druid']['max_hp'] += 2;
       GAME_STATE['druid']['hp'] += 2;
       GAME_STATE['druid']['skill_points'] += 5;
     } else {
-      _.addMessage('You do not have enough gold.');
+      utils.addMessage('You do not have enough gold.');
     }
   };
 

@@ -1,23 +1,25 @@
-import {GAME_STATE, loader} from './data.js';
-import {environments} from './environment.js';
+import {GAME_STATE} from './data.js';
 import {renderer} from './renderer.js';
 import * as _villages from './village.js';
-import * as _ from './yaml.js';
+import {utils} from './general.js';
 
 const envTypes = ['Lake', 'Forest', 'Swamp', 'Mountain'];
 
 function createEnvironment(envType) {
   let frequencies = [ 'none', 'sparse', 'moderate', 'plentiful' ];
   
+  let disease_chance = utils.rollD(3) * 0.05;
+
   let env = {
     'type': envType,
+    'disease_chance': disease_chance,
     'animals': {},
   };
 
   for (let animal of GAME_STATE['animals']) {
     let dc = animal['frequency']['dc'];
 
-    let roll = _.rollD(20);
+    let roll = utils.rollD(20);
 
     // Apply bonus;
     let frequency = animal['frequency']['base'];
@@ -37,7 +39,7 @@ function createEnvironment(envType) {
 }
 
 function createMap(gridSize = 4) {
-  function initializeGrid(environments) {
+  function initializeGrid() {
     let grid = [];
     for (let i = 0; i < gridSize; i++) {
       grid[i] = [];
@@ -73,7 +75,7 @@ function createMap(gridSize = 4) {
     return grid;
   }
 
-  let grid = initializeGrid(environments);
+  let grid = initializeGrid();
   grid = placeVillages(GAME_STATE['villages'], grid);
   return grid;
 }
@@ -92,7 +94,7 @@ function enterVillage(village, x, y) {
   }
 
   GAME_STATE['village'] = village;
-  _.pushView('village');
+  utils.pushView('village');
 }
 
 function getMapMatrix() {
@@ -123,24 +125,24 @@ function getMapMatrix() {
       return;
     }
 
-    if (_.isOverweight()) {
-      _.addMessage(`You are overweight.`);
+    if (utils.isOverweight()) {
+      utils.addMessage(`You are overweight.`);
       return;
     }
 
-    if (!_.useAbility(getTravelCost())) {
-      _.addMessage(`You do not have enough stamina to travel.`);
+    if (!utils.useAbility(getTravelCost())) {
+      utils.addMessage(`You do not have enough stamina to travel.`);
       return;
     }
 
-    if (_.roll(0.2)) {
-      _.pushView('battle');
+    if (utils.roll(0.2)) {
+      utils.pushView('battle');
       return;
     }
 
     GAME_STATE['druid']['position']['x'] = x;
     GAME_STATE['druid']['position']['y'] = y;
-    _.addTime('6:00');
+    utils.addTime('6:00');
   }
 
   let matrix = [];
@@ -209,7 +211,7 @@ export function map() {
   data['map_matrix'] = getMapMatrix();
 
   data['rest'] = function() {
-    _.pushView('camp');
+    utils.pushView('camp');
   };
 
   data['enter'] = function() {
@@ -222,7 +224,7 @@ export function map() {
       const village = GAME_STATE['villages'][village_index];
       enterVillage(village, i, j);
     } else {
-      _.pushView('forest');
+      utils.pushView('forest');
     }
   };
 

@@ -5,7 +5,7 @@ const path = require('path');
 // Set the port to 8000
 const port = 8002;
 
-const viewsDirectory = path.join(__dirname, 'views');
+const viewsDirectory = path.join(__dirname, '../views');
 
 // Create the server
 const server = http.createServer((req, res) => {
@@ -19,8 +19,7 @@ const server = http.createServer((req, res) => {
       }
 
       // Filter only .html or .whatever extension views you want to list
-      const filteredFiles =
-          files.filter(file => path.extname(file) === '.txt');
+      const filteredFiles = files.filter(file => path.extname(file) === '.txt');
 
       res.writeHead(200, {'Content-Type': 'application/json'});
       res.end(JSON.stringify(filteredFiles));  // Send list of files as JSON
@@ -39,7 +38,7 @@ const server = http.createServer((req, res) => {
       try {
         const data = JSON.parse(body);  // Parse the JSON
         const filePath = path.join(
-            __dirname + '/saves', 'save.json');  // File to write the data
+            path.join(__dirname, '../saves'), 'save.json');  // File to write the data
 
         // Write the JSON data to a file
         fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8', (err) => {
@@ -60,8 +59,12 @@ const server = http.createServer((req, res) => {
     });
   } else {
     // Construct the file path
-    let filePath =
-        path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
+    let filePath = '';
+    if (req.url === '/') {
+      filePath = path.join(__dirname, 'index.html');
+    } else {
+      filePath = path.join(path.join(__dirname, '../'), req.url);
+    }
 
     // Get the file's extension
     const extname = path.extname(filePath);

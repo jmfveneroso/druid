@@ -2,7 +2,7 @@
 @hours   -@               @config-@              Gold: @gold-@ 
 @stamina_bar               @ @hp_bar                 @ 
 @food_bar     @                            @leave-@
-@char_click-@ @inventory_click-@                                @leave-@
+@char_click-@ @inventory_click-@      =@affected_organs@=       @leave-@
                     
 >>> stats
 

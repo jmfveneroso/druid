@@ -1,19 +1,46 @@
+<<< skills
+Skill Points: @druid.skill_points@
+@onclick sword_skill.fn
+- Sword    (He): @sword_skill   @
+@endonclick
+@onclick bow_skill.fn
+- Bow      (Br): @bow_skill     @
+@endonclick
+@onclick camping_skill.fn
+- Camping  (Li): @camping_skill @
+@endonclick
+@onclick sneaking_skill.fn
+- Sneaking (St): @sneaking_skill@
+@endonclick
+@onclick tracking_skill.fn
+- Tracking (Lu): @tracking_skill@
+@endonclick
+# - Skinning: @skinning_skill      @
+>>> skills 
+
+<<< organs
+- @brain-@ Brain:   @druid.brain_hp-@ / 10
+- @heart-@ Heart:   @druid.heart_hp-@ / 10
+- @lungs-@ Lungs:   @druid.lungs_hp-@ / 10
+- @liver-@ Liver:   @druid.liver_hp-@ / 10
+- @stomach-@ Stomach: @druid.stomach_hp-@ / 10
+>>> organs
+
 <<< druid
 @template stats
 
 @druid.name                            @
+@status@
 
-Stats:
-- AC:    @ac @
-- Skill Points:    @druid.skill_points   @
+AC: @ac @ 
 
-Skills:
-- Sword:    @sword_skill         @
-- Bow:      @bow_skill           @
-- Camping:  @camping_skill       @
-- Sneaking: @sneaking_skill      @
-# - Skinning: @skinning_skill      @
-- Tracking: @tracking_skill      @
+%box skills           %     %box organs          %
+%                     %     %                    %
+%                     %     %                    %
+%                     %     %                    %
+%                     %     %                    %
+%                     %     %                    %
+%                     ;     %                    ;
 
 Equipped:
 - Sword: @druid.melee.name-@ 1d@druid.melee.base_die-@+@druid.melee.bonus-@

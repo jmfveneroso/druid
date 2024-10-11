@@ -1,8 +1,9 @@
-import {GAME_STATE, readTemp, TEMP, writeTemp} from './data.js';
-import * as views from './views.js';
+import {GAME_STATE, readTemp, writeTemp, timeToFloat} from './data.js';
 
 const MAX_WIDTH = 1000;
 const MAX_HEIGHT = 1000;
+export const SCREEN_WIDTH = 50;
+export const SCREEN_HEIGHT = 45;
 
 export class TemplateReader {
   constructor(renderer, x, y, onclick_fn) {
@@ -175,7 +176,7 @@ export class TemplateReader {
     }
 
     let value = this.getVar(list_name, data);
-    
+
     if (Array.isArray(value)) {
       for (let j = 0; j < value.length; j++) {
         let iterator = value[j];
@@ -187,7 +188,7 @@ export class TemplateReader {
       const keys = Object.keys(value);
       for (let j = 0; j < keys.length; j++) {
         const key = keys[j];
-        data[name] = { key: key, value: value[key] };
+        data[name] = {key: key, value: value[key]};
         this.processTemplateInternal(subLines, data);
         delete data[name];
       }
@@ -244,7 +245,7 @@ export class TemplateReader {
     }
 
     let value = this.getVar(name, data);
-    
+
     if ((negation && !value) || (!negation && value)) {
       this.processTemplateInternal(subLines, data);
     }
@@ -349,7 +350,7 @@ export class TemplateReader {
 
     for (let i = x; i < x + width; i++) {
       for (let j = y; j < y + height; j++) {
-        this.writeToBuffer(i, j, '#');
+        this.writeToBuffer(i, j, ' ');
       }
     }
 
@@ -357,8 +358,8 @@ export class TemplateReader {
       let counter = this.counter;
       let scroll_x = readTemp('scroll_x', counter) || 0;
       let scroll_y = readTemp('scroll_y', counter) || 0;
-      
-      let fn = function () {
+
+      let fn = function() {
         console.log('Test');
       };
 
@@ -367,51 +368,71 @@ export class TemplateReader {
           scroll_x, scroll_y, fn);
       let max_width = reader.max_width;
       let max_height = reader.max_height;
-      
+
       for (let i = 0; i < 2; i++) {
         let x_ = x + width - 1;
         for (let y_ = y + 1; y_ < y + height - 1; y_++) {
           let can_scroll = scroll_x + width - 2 < max_width;
           let symbol = can_scroll ? '.' : '#';
-          this.writeToBuffer(x_ - i, y_, [symbol, {type: 'FN', fn: function () {
-            if (can_scroll) {
-              writeTemp('scroll_x', scroll_x + 1, counter);
+          this.writeToBuffer(x_ - i, y_, [
+            symbol, {
+              type: 'FN',
+              fn: function() {
+                if (can_scroll) {
+                  writeTemp('scroll_x', scroll_x + 1, counter);
+                }
+              }
             }
-          }}]);
+          ]);
         }
-      
+
         for (let y_ = y + 1; y_ < y + height - 1; y_++) {
           let can_scroll = scroll_x > 0;
           let symbol = can_scroll ? '.' : '#';
-          this.writeToBuffer(x + i, y_, [symbol, {type: 'FN', fn: function () {
-            if (can_scroll) {
-              writeTemp('scroll_x', scroll_x - 1, counter);
+          this.writeToBuffer(x + i, y_, [
+            symbol, {
+              type: 'FN',
+              fn: function() {
+                if (can_scroll) {
+                  writeTemp('scroll_x', scroll_x - 1, counter);
+                }
+              }
             }
-          }}]);
+          ]);
         }
-      
+
         let y_ = y + height - 1;
         for (let x_ = x + 1; x_ < x + width - 1; x_++) {
           let can_scroll = scroll_y + height - 2 < max_height;
           let symbol = can_scroll ? '.' : '#';
-          this.writeToBuffer(x_, y_ - i, [symbol, {type: 'FN', fn: function () {
-            if (can_scroll) {
-              writeTemp('scroll_y', scroll_y + 1, counter);
+          this.writeToBuffer(x_, y_ - i, [
+            symbol, {
+              type: 'FN',
+              fn: function() {
+                if (can_scroll) {
+                  writeTemp('scroll_y', scroll_y + 1, counter);
+                }
+              }
             }
-          }}]);
+          ]);
         }
-      
+
         for (let x_ = x + 1; x_ < x + width - 1; x_++) {
           let can_scroll = scroll_y > 0;
           let symbol = can_scroll ? '.' : '#';
-          this.writeToBuffer(x_, y + i, [symbol, {type: 'FN', fn: function () {
-            if (can_scroll) {
-              writeTemp('scroll_y', scroll_y - 1, counter);
+          this.writeToBuffer(x_, y + i, [
+            symbol, {
+              type: 'FN',
+              fn: function() {
+                if (can_scroll) {
+                  writeTemp('scroll_y', scroll_y - 1, counter);
+                }
+              }
             }
-          }}]);
+          ]);
         }
       }
-      
+
     } else {
       this.renderer.renderTemplate(
           this.buffer, x, y, template_name, data, width, height);
@@ -483,8 +504,8 @@ export class TemplateReader {
   }
 
   writeBuffer(
-      screen, x, y, max_width = views.SCREEN_WIDTH,
-      max_height = views.SCREEN_HEIGHT, start_x = 0, start_y = 0) {
+      screen, x, y, max_width = SCREEN_WIDTH, max_height = SCREEN_HEIGHT,
+      start_x = 0, start_y = 0) {
     for (let i = 0; i < this.max_width; i++) {
       for (let j = 0; j < this.max_height; j++) {
         if (x + i >= 0 && x + i < x + max_width && y + j >= 0 &&
@@ -502,10 +523,11 @@ export class Renderer {
     this.dir = /views/;
     this.views = {};
     this.models = {};
+    this.updaters = {};
     this.counter = 0;
   }
 
-  extractTemplatesFromFile(content) {
+  async extractTemplatesFromFile(content) {
     const templateRegex = /<<<\s*(\w+)\s*\n([\s\S]*?)\n>>>\s*\1/g;
 
     let match;
@@ -540,7 +562,7 @@ export class Renderer {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
-      const files = await response.json(); // List of files
+      const files = await response.json();  // List of files
       for (const file of files) {
         console.log(file);
         this.loadViewsFromFile(file);
@@ -562,7 +584,7 @@ export class Renderer {
     }
 
     if (this.views[template_name] === undefined) {
-      console.log(template_name + ' does not exist.')
+      console.log(template_name + ' does not exist.');
     }
 
     const lines = this.views[template_name].split('\n');
@@ -570,11 +592,82 @@ export class Renderer {
     this.counter += 1;
 
     reader.renderTemplate(lines, data);
-    screen = reader.writeBuffer(screen, x, y, max_width, max_height, start_x, start_y);
+
+    screen = reader.writeBuffer(
+        screen, x, y, max_width, max_height, start_x, start_y);
     return reader;
+  }
+
+  updateGame() {
+    let current_time = timeToFloat(GAME_STATE['hours']);
+    Object.keys(this.updaters).forEach(key => {
+      let u = this.updaters[key];
+      if (u.next_update === undefined || current_time >= u.next_update) {
+        u.next_update = current_time + u.period;
+        u.fn();
+      }
+    });
   }
 }
 
-
 export let renderer = new Renderer();
-renderer.loadViews();
+
+function createScreen(width, height) {
+  return Array.from({length: height}, () => Array(width).fill(' '));
+}
+
+function renderScreen(screen, handleClick) {
+  const gameConsole = document.getElementById('game-console');
+  gameConsole.innerHTML = '';  // Clear previous screen
+
+  screen.forEach((row, rowIndex) => {
+    const rowElement = document.createElement('div');
+    rowElement.className = 'row';
+
+    row.forEach((char_and_fn, colIndex) => {
+      let char = char_and_fn[0];
+      let fn = char_and_fn[1];
+
+      const charElement = document.createElement('div');
+      charElement.className = 'col';
+      charElement.textContent = char;
+
+      charElement.setAttribute('data-row', rowIndex);
+      charElement.setAttribute('data-col', colIndex);
+
+      charElement.addEventListener('click', function() {
+        handleClick(fn, colIndex, rowIndex);
+      });
+
+      rowElement.appendChild(charElement);
+    });
+
+    gameConsole.appendChild(rowElement);
+  });
+}
+
+function printScreen(handleClick) {
+  let screen = createScreen(SCREEN_WIDTH, SCREEN_HEIGHT);
+
+  let lft = 1;
+  let top = 1;
+
+  renderer.counter = 0;
+  let game_views = GAME_STATE['views'];
+  renderer.renderTemplate(screen, lft, top, game_views[game_views.length - 1]);
+
+  renderScreen(screen, handleClick);
+}
+
+export function run() {
+  function handleClick(data, row, col) {
+    if (data !== undefined) {
+      data.fn(row, col);
+    }
+
+    renderer.updateGame();
+    printScreen(handleClick);
+  }
+  
+  handleClick();
+}

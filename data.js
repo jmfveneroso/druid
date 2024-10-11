@@ -51,6 +51,16 @@ export let GAME_STATE = {
     'Ruby': {value: 40, weight: 5},
     'Drake Pelt': {value: 500, weight: 5},
     'Elixir': {value: 0, weight: 1, type: 'potion'},
+    'Heart Potion': {value: 100, weight: 1, type: 'potion'},
+    'Lungs Potion': {value: 100, weight: 1, type: 'potion'},
+    'Liver Potion': {value: 100, weight: 1, type: 'potion'},
+    'Stomach Potion': {value: 100, weight: 1, type: 'potion'},
+    'Brain Potion': {value: 100, weight: 1, type: 'potion'},
+    'Heart* Potion': {value: 500, weight: 1, type: 'potion'},
+    'Lungs* Potion': {value: 500, weight: 1, type: 'potion'},
+    'Liver* Potion': {value: 500, weight: 1, type: 'potion'},
+    'Stomach* Potion': {value: 500, weight: 1, type: 'potion'},
+    'Brain* Potion': {value: 500, weight: 1, type: 'potion'},
   },
   'enemies': {
     'wolf': {
@@ -132,17 +142,39 @@ export let GAME_STATE = {
     'max_food': 10,
     'level': 1,
     'init_bonus': 2,
-    'camping_skill': 10,
+    'camping_skill': 1,
     'sneaking_skill': 1,
     'skinning_skill': 1,
     'tracking_skill': 1,
     'sword_skill': 1,
     'bow_skill': 1,
     'skill_points': 5,
-    'max_weight': 100,
+    'max_weight': 10,
+    'brain_hp': 10,
+    'heart_hp': 5,
+    'lungs_hp': 10,
+    'liver_hp': 10,
+    'stomach_hp': 10,
+    'brain_max_hp': 10,
+    'heart_max_hp': 10,
+    'lungs_max_hp': 10,
+    'liver_max_hp': 10,
+    'stomach_max_hp': 10,
+    'brain_diseases': [],
+    'heart_diseases': [],
+    'lungs_diseases': [],
+    'liver_diseases': [],
+    'stomach_diseases': [],
+    'status': {},
   },
   'market': {
-    'items': [{name: 'Ration'}, {name: 'Arrows'}],
+    'items': [
+      {name: 'Ration'}, {name: 'Arrows'}, {name: 'Heart Potion'},
+      {name: 'Lungs Potion'}, {name: 'Liver Potion'}, {name: 'Stomach Potion'},
+      {name: 'Brain Potion'}, {name: 'Heart* Potion'}, {name: 'Lungs* Potion'},
+      {name: 'Liver* Potion'}, {name: 'Stomach* Potion'},
+      {name: 'Brain* Potion'}
+    ],
   },
   'blacksmith_items': [
     {name: 'Silver Sword'},
@@ -160,6 +192,28 @@ export let GAME_STATE = {
   ],
   'debug': false,
   'force_encounter': false,
+  'disease_types': {
+    'heart_fever': {
+      organs: ['heart'],
+      chance: 0.2,
+    },
+    'lungs_fever': {
+      organs: ['lungs'],
+      chance: 0.2,
+    },
+    'liver_fever': {
+      organs: ['liver'],
+      chance: 0.2,
+    },
+    'stomach_fever': {
+      organs: ['stomach'],
+      chance: 0.2,
+    },
+    'brain_fever': {
+      organs: ['brain'],
+      chance: 0.2,
+    },
+  },
 };
 
 Object.assign(GAME_STATE, {
@@ -363,6 +417,25 @@ Object.assign(GAME_STATE, {
   'scroll_height': 0,
 });
 
+export function timeToFloat(timeWithDay) {
+  let dayNumber = 0;  // Default day is 0 if no day part is given
+  let timePart;
+
+  // Check if the string contains a day part (starts with #)
+  if (timeWithDay.startsWith('#')) {
+    const [dayPart, time] = timeWithDay.split(' ');
+    dayNumber = parseInt(dayPart.slice(1)) - 1;  // Convert day to 0-based index
+    timePart = time;
+  } else {
+    timePart = timeWithDay;
+  }
+
+  const [hours, minutes] = timePart.split(':').map(Number);
+
+  return dayNumber * 24 + hours +
+      (minutes / 60);  // Calculate total hours including previous days
+}
+
 export let TEMP = {};
 
 export function writeTemp(name, value, counter) {
@@ -375,7 +448,7 @@ export function readTemp(name, counter) {
 
 export class Loader {
   constructor() {
-    this.dir = /saves/;
+    this.dir = '../saves/';
   }
 
   async loadState() {
