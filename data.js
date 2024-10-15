@@ -117,10 +117,11 @@ export let GAME_STATE = {
     'name': 'Lianna Starsong',
     'items': [
       {name: 'Ration', q: 3},
-      {name: 'Arrows', q: 20},
+      {name: 'Arrows', q: 1000},
       {name: 'Elixir', q: 1},
     ],
     'position': {'x': 3, 'y': 3},
+    'region_position': {'x': 0, 'y': 0},
     'ranged': {
       'name': 'Copper Bow',
       'base_die': 6,

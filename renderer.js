@@ -51,6 +51,12 @@ export class TemplateReader {
   getValue(value) {
     if (typeof value === 'string') {
       return value;
+    } else if (typeof value === 'boolean') {
+      return value.toString();
+    } else if (Array.isArray(value)) {
+      return value.toString();
+    } else if (typeof value === 'boolean') {
+      return value.toString();
     } else if (Number.isInteger(value)) {
       return value.toString();
     } else if (!isNaN(value)) {

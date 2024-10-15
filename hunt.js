@@ -1,5 +1,6 @@
 import {GAME_STATE, TEMP} from './data.js';
 import {utils} from './general.js';
+import {getCurrentSquare} from './region_map.js';
 import {renderer, run} from './renderer.js';
 
 function getAnimal(animal_name) {
@@ -25,16 +26,7 @@ export function damageAnimal(isCritical) {
   return dmg;
 }
 
-function getFrequencyBonus(frequency) {
-  return {
-    'none': -1000,
-    'sparse': -4,
-    'moderate': 0,
-    'plentiful': +4
-  }[frequency];
-}
-
-function getTrackableAnimals() {
+function getTrackableAnimalsForTemplate() {
   let skill = utils.getTrackingSkill();
 
   let env = utils.getCurrentEnv();
@@ -44,7 +36,13 @@ function getTrackableAnimals() {
       return;
     }
 
-    utils.setLoading(1000, 'Tracking...', '2:00', function() {
+    GAME_STATE['chasing_goal'] = {
+      'x': utils.rollD(32) - 1,
+      'y': utils.rollD(18) - 1,
+    };
+
+    utils.setChasing(1000, 'Tracking...', '2:00', function() {
+      getCurrentSquare().tracks = [];
       let success = utils.dcCheck(skill, animal['chasing_difficulty']);
       success = success || GAME_STATE['debug'];
       if (!success) {
@@ -58,7 +56,6 @@ function getTrackableAnimals() {
       let is_special = frequency['has_special'];
       if (is_special) {
         is_special = utils.rollD(5) == 5;
-        // is_special = true;
       }
 
       utils.addMessage(`You tracked the ${animal.name}.`);
@@ -83,32 +80,25 @@ function getTrackableAnimals() {
   }
 
   let animals = [];
+  let trackable_animals = getCurrentSquare().tracks;
   for (let animal of GAME_STATE['animals']) {
-    if (animal['min_tracking_skill'] > skill && !GAME_STATE['debug']) {
+    if (!trackable_animals.includes(animal['name'])) {
       continue;
     }
 
+    let prob = utils.probDcCheck(skill, animal['chasing_difficulty']);
+
     let frequency = env['animals'][animal['name']];
     let has_special = frequency['has_special'];
-    frequency = frequency['frequency'];
 
-    let frequencyBonus = getFrequencyBonus(frequency);
-
-    let success =
-        utils.dcCheck(skill + frequencyBonus, animal['tracking_difficulty']);
-    success = success || GAME_STATE['debug'];
-    if (success) {
-      let prob = utils.probDcCheck(skill, animal['chasing_difficulty']);
-
-      animals.push({
-        'name': animal['name'],
-        'prob': prob,
-        'has_special': (has_special == 1) ? '(*)' : '   ',
-        'fn': function() {
-          outcome(animal);
-        },
-      });
-    }
+    animals.push({
+      'name': animal['name'],
+      'prob': prob,
+      'has_special': (has_special == 1) ? '(*)' : '   ',
+      'fn': function() {
+        outcome(animal);
+      },
+    });
   }
 
   return animals;
@@ -118,7 +108,7 @@ export function track() {
   let env = GAME_STATE['current_env'];
 
   let template_data = {};
-  template_data['animals'] = getTrackableAnimals();
+  template_data['animals'] = getTrackableAnimalsForTemplate();
 
   if (template_data['animals'].length === 0) {
     utils.addMessage('You found no tracks.');
@@ -432,13 +422,14 @@ export function forest() {
   template_data['hunt'] = function() {
     if (utils.useAbility(getTrackingCost())) {
       utils.addMessage('You spent some time finding tracks.');
-      utils.setLoading(1000, 'Exploring...', '1:00', function() {
-        if (utils.roll(0.2)) {
-          utils.pushView('battle');
-          return;
-        }
-        utils.pushView('hunt');
-      });
+      utils.pushView('hunt');
+      // utils.setLoading(1000, 'Exploring...', '1:00', function() {
+      //   // if (utils.roll(0.2)) {
+      //   //   utils.pushView('battle');
+      //   //   return;
+      //   // }
+      //   utils.pushView('hunt');
+      // });
     } else {
       utils.addMessage('You do not have enough stamina.');
     }
@@ -454,7 +445,7 @@ export function forest() {
     let skill = utils.getTrackingSkill();
     let has_special = frequency['has_special'];
     frequency = frequency['frequency'];
-    let frequencyBonus = getFrequencyBonus(frequency);
+    let frequencyBonus = utils.getFrequencyBonus(frequency);
 
     let prob = utils.probDcCheck(
         skill + frequencyBonus, animal['tracking_difficulty']);

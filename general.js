@@ -1,4 +1,4 @@
-import {GAME_STATE, loader, readTemp, TEMP, writeTemp, timeToFloat} from './data.js';
+import {GAME_STATE, loader, readTemp, TEMP, timeToFloat, writeTemp} from './data.js';
 import {renderer, run} from './renderer.js';
 
 export let utils = {};
@@ -90,7 +90,8 @@ utils.setLoading = function(duration, message, hours, fn) {
   utils.pushView('loading_bar');
 };
 
-utils.getCurrentEnv = function () {
+utils.getCurrentEnv =
+    function() {
   const grid = GAME_STATE['map_grid'];
   const druidX = GAME_STATE['druid']['position']['x'];
   const druidY = GAME_STATE['druid']['position']['y'];
@@ -98,10 +99,48 @@ utils.getCurrentEnv = function () {
   return square['environment'];
 }
 
-utils.getCurrentView = function () {
+    utils.getCurrentView =
+        function() {
   let game_views = GAME_STATE['views'];
   return game_views[game_views.length - 1];
 }
+
+        utils.getFrequencyBonus = function(frequency) {
+  return {
+    'none': -1000,
+    'sparse': -4,
+    'moderate': 0,
+    'plentiful': +4
+  }[frequency];
+};
+
+utils.getTrackableAnimals = function() {
+  let skill = utils.getTrackingSkill();
+  let env = utils.getCurrentEnv();
+
+  let animals = [];
+  for (let animal of GAME_STATE['animals']) {
+    if (animal['min_tracking_skill'] > skill && !GAME_STATE['debug']) {
+      continue;
+    }
+
+    let frequency = env['animals'][animal['name']];
+    let has_special = frequency['has_special'];
+    frequency = frequency['frequency'];
+
+    let frequencyBonus = utils.getFrequencyBonus(frequency);
+
+    let success =
+        utils.dcCheck(skill + frequencyBonus, animal['tracking_difficulty']);
+    success = success || GAME_STATE['debug'];
+    if (success) {
+      let prob = utils.probDcCheck(skill, animal['chasing_difficulty']);
+
+      animals.push(animal['name']);
+    }
+  }
+  return animals;
+};
 
 // =============================================================================
 // TEMPLATES

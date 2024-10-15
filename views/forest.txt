@@ -10,7 +10,7 @@ Disease Prob: @env.disease_chance @
 
 @onclick hunt
 +-----------------------------+
-| EXPLORE                     |
+| HUNT                        |
 +-----------------------------+
 @endonclick
 

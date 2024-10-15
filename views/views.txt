@@ -193,6 +193,86 @@ Random encounter chance: @random_encounter@
 @template log msg
 >>> map
 
+<<< region_map_mat
+@matrix region_map_matrix
+>>> region_map_mat
+
+<<< ju
+@onclick move_up
+xxxxxx    
+x    x
+xxxxxx
+@endonclick
+>>> ju
+
+<<< jr
+@onclick move_right
+xxxxxx    
+x    x
+xxxxxx
+@endonclick
+>>> jr
+
+<<< jd
+@onclick move_down
+xxxxxx    
+x    x
+xxxxxx
+@endonclick
+>>> jd
+
+<<< jl
+@onclick move_left
+xxxxxx    
+x    x
+xxxxxx
+@endonclick
+>>> jl
+
+<<< joypad
+
+_   %box ju%
+    %      %
+    %      ;
+%box jl%%box jr%
+%      %%      %
+%      ;%      ;   
+    %box jd%
+    %      %
+    %      ;
+>>> joypad
+
+<<< region_map
+@template stats
+
+%box region_map_mat            %  %box joypad  %
+%                              %  %            %
+%                              %  %            %
+%                              %  %            %
+%                              %  %            %
+%                              %  %            %
+%                              %  %            %
+%                              %  %            %
+%                              %  %            ;
+%                              %  
+%                              %  
+%                              %    %box enter  % 
+%                              %    %           % 
+%                              %    %           % 
+%                              %    %           ; 
+%                              %
+%                              %
+%                              ;
+
+Type: @square.type           @
+Camp quality: @square.quality@
+Disease spread: @square.disease@
+Has herbs: @square.has_herbs@
+Tracks: @tracks                                  @
+
+@template log msg
+>>> region_map
+
 <<< village
 @template stats
 

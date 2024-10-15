@@ -587,7 +587,27 @@ function getSkillStr(skill) {
   let conditions = skill_stats[skill];
   let penalty = getPenaltyAfterStatus(conditions[0], conditions[1]);
 
-  let str = GAME_STATE['druid'][skill + '_skill'];
+  let str = '';
+  switch (skill) {
+    case 'sword':
+      str = utils.getSwordSkill();
+      break;
+    case 'bow':
+      str = utils.getBowSkill();
+      break;
+    case 'sneaking':
+      str = utils.getSneakingSkill();
+      break;
+    case 'tracking':
+      str = utils.getTrackingSkill();
+      break;
+    case 'camping':
+      str = utils.getCampingSkill();
+      break;
+    default:
+      break;
+  }
+
   if (penalty > 0) {
     str += ' (-' + penalty.toString() + ')';
   }

@@ -2,6 +2,7 @@ import {GAME_STATE} from './data.js';
 import {renderer} from './renderer.js';
 import * as _villages from './village.js';
 import {utils} from './general.js';
+import {createRegionMap} from './region_map.js';
 
 const envTypes = ['Lake', 'Forest', 'Swamp', 'Mountain'];
 
@@ -45,7 +46,10 @@ function createMap(gridSize = 4) {
       grid[i] = [];
       for (let j = 0; j < gridSize; j++) {
         let envType = Math.max(3 - i, 3 - j);
-        grid[i][j] = {'environment': createEnvironment(envTypes[envType])};
+        grid[i][j] = {
+          'environment': createEnvironment(envTypes[envType]),
+          'region_map': createRegionMap(),
+        };
       }
     }
     return grid;
@@ -135,11 +139,10 @@ function getMapMatrix() {
       return;
     }
 
-    if (utils.roll(0.2)) {
-    // if (utils.roll(1.0)) {
-      utils.pushView('battle');
-      return;
-    }
+    // if (utils.roll(0.2)) {
+    //   utils.pushView('battle');
+    //   return;
+    // }
 
     GAME_STATE['druid']['position']['x'] = x;
     GAME_STATE['druid']['position']['y'] = y;
@@ -225,7 +228,8 @@ export function map() {
       const village = GAME_STATE['villages'][village_index];
       enterVillage(village, i, j);
     } else {
-      utils.pushView('forest');
+      utils.pushView('region_map');
+      // utils.pushView('forest');
     }
   };
 
