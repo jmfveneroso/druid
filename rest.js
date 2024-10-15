@@ -133,9 +133,9 @@ export function rest(forced, staminaRate) {
   let success = utils.roll(GAME_STATE['encounter_prob']);
   if (success) {
     if (forced) {
-      pushView('battle');
+      utils.pushView('battle');
     } else {
-      popAndPushView('battle');
+      utils.popAndPushView('battle');
     }
     return;
   }

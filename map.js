@@ -135,8 +135,8 @@ function getMapMatrix() {
       return;
     }
 
-    // if (utils.roll(0.2)) {
-    if (utils.roll(1.0)) {
+    if (utils.roll(0.2)) {
+    // if (utils.roll(1.0)) {
       utils.pushView('battle');
       return;
     }
